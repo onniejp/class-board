@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Class Board (Prototype)</title>
+  <tyle.css
+</head>
+<body>
+  <header class="topbar">
+    <h1>Class Board</h1>
+    <div class="status">
+      <span id="conn-status">Connecting…</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Board container. Set a background image in CSS if you like. -->
+    <div id="board" role="application" aria-label="Shared board"></div>
+  </main>
+
+  <!-- You can host your own supabase-js bundle, but for a quick start we use the CDN. -->
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    // 🔧 TODO: paste your Supabase values
+    const SUPABASE_URL = "https://ezqwfuisdirldwhfahja.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6cXdmdWlzZGlybGR3aGZhaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMjc2OTcsImV4cCI6MjA4NDYwMzY5N30.JoJdGH2D-w2ZJOJq13svswIUnIZehxwiThuj1YpuzkM";
+
+    // Basic guard so you don’t forget to paste keys
+    if (SUPABASE_URL.includes("YOUR_") || SUPABASE_ANON_KEY.includes("YOUR_")) {
+      alert("Please open index.html and set SUPABASE_URL and SUPABASE_ANON_KEY.");
+    }
+
+    // Expose the client to app.js via global
+    window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
+
+  <pp.js</script>
+</body>
+</html>
