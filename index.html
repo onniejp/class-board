@@ -5,8 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Class Board (Prototype)</title>
 
-  <!-- Important: relative path so it works at /class-board/ on GitHub Pages -->
-  <link rel="stylesheet" href<header class="topbar">
+  <!-- Use a RELATIVE path so it works at /class-board/ on GitHub Pages -->
+  style.css
+</head>
+<body>
+  <header class="topbar">
     <h1>Class Board</h1>
     <div class="status"><span id="conn-status">Connecting…</span></div>
   </header>
@@ -15,7 +18,7 @@
     <div id="board" role="application" aria-label="Shared board"></div>
   </main>
 
-  <!-- Supabase client (must run before app.js so window.supabase exists) -->
+  <!-- Supabase client must run BEFORE app.js so window.supabase exists -->
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -26,9 +29,10 @@
       alert("Set SUPABASE_URL and SUPABASE_ANON_KEY");
     }
 
+    // Expose to app.js
     window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Quick ping for connection feedback
+    // Optional: quick ping for feedback
     try {
       const el = document.getElementById('conn-status');
       const { error } = await window.supabase.from('Tokens').select('id').limit(1);
@@ -39,7 +43,7 @@
     }
   </script>
 
-  <!-- Your app code (relative path; no leading slash) -->
-  <script typept>
+  <!-- Your app code (RELATIVE path; no leading slash) -->
+  app.js</script>
 </body>
 </html>
