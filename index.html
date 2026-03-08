@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Class Board (Prototype)</title>
+  <title>TEST 1 - Class Board (Prototype)</title>
   <tyle.css
 </head>
 <body>
@@ -35,24 +35,9 @@
     // Expose the client to app.js via global
     window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
-
-  <script type="module">
-  // Simple sanity check
-  const sb = window.supabase;
-  console.log('Supabase client:', sb);
-
-  try {
-    const { data, error } = await sb.from('Tokens').select('id,x,y,label').limit(3);
-    console.log('Test query result:', { data, error });
-    const el = document.getElementById('conn-status');
-    el.textContent = error ? ('DB error: ' + error.message) : ('Connected • fetched ' + data.length + ' Token(s)');
-  } catch (e) {
-    console.error('Fatal test error:', e);
-    document.getElementById('conn-status').textContent = 'Fatal test error (see console)';
-  }
-</script>
   
   <pp.js</script>
 </body>
 </html>
+
 
