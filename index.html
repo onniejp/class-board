@@ -4,7 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Class Board (Prototype)</title>
-  <link rel="stylesheetdy>
+
+  <!-- Use a relative path so it works at /class-board/ -->
+  <link.css
+</head>
+<body>
   <header class="topbar">
     <h1>Class Board</h1>
     <div class="status"><span id="conn-status">Connecting…</span></div>
@@ -18,28 +22,30 @@
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-    const SUPABASE_URL = "https://ezqwfuisdirldwhfahja.supabase.co";        // e.g., https://abcxyz.supabase.co
+    const SUPABASE_URL = "https://ezqwfuisdirldwhfahja.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6cXdmdWlzZGlybGR3aGZhaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMjc2OTcsImV4cCI6MjA4NDYwMzY5N30.JoJdGH2D-w2ZJOJq13svswIUnIZehxwiThuj1YpuzkM";
 
-    if (SUPABASE_URL.includes("YOUR_") || SUPABASE_ANON_KEY.includes("YOUR_")) {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       alert("Set SUPABASE_URL and SUPABASE_ANON_KEY in index.html");
     }
 
-    window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const statusEl = document.getElementById('conn-status');
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    window.supabase = supabase;
 
-    // Optional: quick ping for clearer feedback while debugging
     try {
-      const { data, error } = await window.supabase.from('Tokens').select('id').limit(1);
+      const { data, error } = await supabase.from('Tokens').select('id').limit(1);
       if (error) {
-        document.getElementById('conn-status').textContent = 'DB error: ' + error.message;
+        statusEl.textContent = 'DB error: ' + error.message;
         console.error('DB error:', error);
+      } else {
+        statusEl.textContent = 'Connected';
       }
     } catch (e) {
-      document.getElementById('conn-status').textContent = 'Fatal error (see console)';
+      statusEl.textContent = 'Fatal error (see console)';
       console.error(e);
     }
   </script>
 
-  <!-- App logic -->
-  <script type="module" src="tml>
-
+  <!-- App logic (relative path; no leading slash) -->
+  <script type="module" src/html>
