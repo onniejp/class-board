@@ -123,39 +123,35 @@ async function writeTokenPosition(id, x, y) {
   if (error) console.error('Update error:', error);
 }
 
+function setStatus(msg) { statusEl.textContent = msg; }
+
 async function fetchTokens() {
+  setStatus('Loading tokens…');
   const { data, error } = await sb.from('Tokens').select('*').order('id', { ascending: true });
   if (error) {
     console.error('Fetch error:', error);
-    statusEl.textContent = 'Error loading Tokens';
+    setStatus('Error loading tokens: ' + error.message);
     return;
   }
   data.forEach(ensureTokenEl);
-  statusEl.textContent = `Connected • ${data.length} Token(s)`;
+  setStatus(`Connected • ${data.length} token(s)`);
 }
 
 function subscribeRealtime() {
-  // Supabase v2 channel API
-  const channel = sb
-    .channel('realtime:Tokens')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'Tokens' },
-      (payload) => {
-        const { eventType, new: newRow, old: oldRow } = payload;
-        // console.log('Realtime event', eventType, payload);
-        if (eventType === 'INSERT') {
-          ensureTokenEl(newRow);
-        } else if (eventType === 'UPDATE') {
-          ensureTokenEl(newRow);
-        } else if (eventType === 'DELETE') {
-          removeTokenEl(oldRow.id);
-        }
-      }
-    )
+  setStatus('Subscribing to realtime…');
+  sb
+    .channel('realtime:tokens')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'Tokens' }, (payload) => {
+      const { eventType, new: newRow, old: oldRow } = payload;
+      if (eventType === 'INSERT' || eventType === 'UPDATE') ensureTokenEl(newRow);
+      if (eventType === 'DELETE') removeTokenEl(oldRow.id);
+    })
     .subscribe((status) => {
-      // status: SUBSCRIBED | TIMED_OUT | CHANNEL_ERROR | CLOSED
-      // We’ll keep it minimal for now.
+      console.log('Channel status:', status);
+      if (status === 'SUBSCRIBED') setStatus('Connected (realtime on)');
+      if (status === 'CHANNEL_ERROR') setStatus('Realtime channel error');
+      if (status === 'TIMED_OUT') setStatus('Realtime timed out');
+      if (status === 'CLOSED') setStatus('Realtime closed');
     });
 }
 
@@ -163,3 +159,4 @@ function subscribeRealtime() {
 fetchTokens();
 
 subscribeRealtime();
+
