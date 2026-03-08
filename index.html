@@ -5,11 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Class Board (Prototype)</title>
 
-  <!-- Use a relative path so it works at /class-board/ -->
-  <link.css
-</head>
-<body>
-  <header class="topbar">
+  <!-- Important: relative path so it works at /class-board/ on GitHub Pages -->
+  <link rel="stylesheet" href<header class="topbar">
     <h1>Class Board</h1>
     <div class="status"><span id="conn-status">Connecting…</span></div>
   </header>
@@ -18,7 +15,7 @@
     <div id="board" role="application" aria-label="Shared board"></div>
   </main>
 
-  <!-- Create Supabase client -->
+  <!-- Supabase client (must run before app.js so window.supabase exists) -->
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -26,26 +23,23 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6cXdmdWlzZGlybGR3aGZhaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMjc2OTcsImV4cCI6MjA4NDYwMzY5N30.JoJdGH2D-w2ZJOJq13svswIUnIZehxwiThuj1YpuzkM";
 
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      alert("Set SUPABASE_URL and SUPABASE_ANON_KEY in index.html");
+      alert("Set SUPABASE_URL and SUPABASE_ANON_KEY");
     }
 
-    const statusEl = document.getElementById('conn-status');
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    window.supabase = supabase;
+    window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Quick ping for connection feedback
     try {
-      const { data, error } = await supabase.from('Tokens').select('id').limit(1);
-      if (error) {
-        statusEl.textContent = 'DB error: ' + error.message;
-        console.error('DB error:', error);
-      } else {
-        statusEl.textContent = 'Connected';
-      }
+      const el = document.getElementById('conn-status');
+      const { error } = await window.supabase.from('Tokens').select('id').limit(1);
+      el.textContent = error ? `DB error: ${error.message}` : 'Connected';
     } catch (e) {
-      statusEl.textContent = 'Fatal error (see console)';
+      document.getElementById('conn-status').textContent = 'Fatal error (see console)';
       console.error(e);
     }
   </script>
 
-  <!-- App logic (relative path; no leading slash) -->
-  <script type="module" src/html>
+  <!-- Your app code (relative path; no leading slash) -->
+  <script typept>
+</body>
+</html>
