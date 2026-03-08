@@ -35,10 +35,26 @@
     // Expose the client to app.js via global
     window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
+
+  <script type="module">
+  const sb = window.supabase;
+  console.log('Supabase client:', sb);
+  try {
+    // IMPORTANT: Your table is capitalized, so use 'Tokens'
+    const { data, error } = await sb.from('Tokens').select('id,x,y,label').limit(3);
+    console.log('Test query result:', { data, error });
+    document.getElementById('conn-status').textContent =
+      error ? ('DB error: ' + error.message) : ('Connected • fetched ' + data.length + ' Token(s)');
+  } catch (e) {
+    console.error('Fatal test error:', e);
+    document.getElementById('conn-status').textContent = 'Fatal test error (see console)';
+  }
+</script>
   
   <app.js</script>
 </body>
 </html>
+
 
 
 
