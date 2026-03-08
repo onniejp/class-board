@@ -1,81 +1,66 @@
+
+/* style.css */
 :root {
-  --bg: #0f172a;       /* slate-900 */
-  --panel: #111827;    /* gray-900 */
-  --ink: #e5e7eb;      /* gray-200 */
-  --accent: #38bdf8;   /* sky-400 */
-  --accent-2: #f59e0b; /* amber-500 */
+  --board-w: min(900px, 92vw);
+  --board-h: min(600px, 70vh);
+  --token-size: 40px;
+  --token-radius: 10px;
+  --token-bg: #4f46e5;   /* indigo */
+  --token-bg-amber: #f59e0b;
 }
 
 * { box-sizing: border-box; }
 html, body {
-  height: 100%;
   margin: 0;
-  color: var(--ink);
-  background: var(--bg);
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  height: 100%;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #111;
 }
 
 .topbar {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  padding: 10px 14px;
-  background: var(--panel);
-  border-bottom: 1px solid #1f2937; /* gray-800 */
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fafafa;
 }
 
-h1 { font-size: 18px; margin: 0; }
-
-#conn-status {
-  font-size: 12px;
-  opacity: 0.8;
-}
+.status { color: #6b7280; font-size: 0.95rem; }
 
 main {
-  padding: 10px;
+  display: grid;
+  place-content: center;
+  padding: 20px;
 }
 
+/* The board needs explicit size & positioning context for tokens */
 #board {
-  position: relative;
-  width: min(1200px, 96vw);
-  height: min(700px, 70vh);
-  margin: 0 auto;
-  border: 2px dashed #334155; /* slate-700 */
-  border-radius: 10px;
-  background: #0b1220;
-  /* 👉 Use a board background image if you have one: */
-  /* background: url("./my-board.jpg") center/contain no-repeat, #0b1220; */
-  touch-action: none; /* allow PointerEvents dragging on touch devices */
+  position: relative;                /* important—Token uses absolute */
+  width: var(--board-w);
+  height: var(--board-h);
+  background: #fff;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
   overflow: hidden;
 }
 
-/* Token look */
 .Token {
   position: absolute;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #ffffffcc, var(--accent));
-  border: 2px solid #082f49;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.45);
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
+  width: var(--token-size);
+  height: var(--token-size);
+  border-radius: var(--token-radius);
+  background: var(--token-bg);
+  color: white;
+  font-weight: 700;
   display: grid;
   place-items: center;
-  color: #06243a;
-  font-weight: 700;
+  user-select: none;
+  cursor: grab;
+  /* Prevent touch scrolling while dragging */
+  touch-action: none;
 }
 
-.Token.dragging {
-  cursor: grabbing;
-  transform: scale(1.03);
-  box-shadow: 0 10px 18px rgba(0,0,0,0.55);
-}
-
-.Token[data-color="amber"] {
-  background: radial-gradient(circle at 30% 30%, #ffffffcc, var(--accent-2));
-  border-color: #451a03;
-  color: #3b2010;
-
-}
+.Token[data-color="amber"] { background: var(--token-bg-amber); }
+.Token.dragging { cursor: grabbing; opacity: 0.9; }
