@@ -128,8 +128,13 @@ async function fetchTokens() {
     setStatus('Error loading tokens: ' + error.message);
     return;
   }
-  data.forEach(ensureTokenEl);
-  setStatus(`Connected • ${data.length} token(s)`);
+  console.log('Tokens data:', data);           // <-- See exactly what came back
+  if (!data || data.length === 0) {
+    setStatus('Connected • 0 tokens (seed some rows in public."Tokens")');
+  } else {
+    setStatus(`Connected • ${data.length} token(s)`);
+    data.forEach(ensureTokenEl);
+  }
 }
 
 function subscribeRealtime() {
@@ -153,3 +158,4 @@ function subscribeRealtime() {
 // Initialize
 fetchTokens();
 subscribeRealtime();
+
