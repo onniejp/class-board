@@ -3,60 +3,47 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TEST 3 - Class Board (Prototype)</title>
-  <tyle.css
+  <title>Class Board (Prototype)</title>
+  style.css
 </head>
 <body>
   <header class="topbar">
     <h1>Class Board</h1>
-    <div class="status">
-      <span id="conn-status">Connecting…</span>
-    </div>
+    <div class="status"><span id="conn-status">Connecting…</span></div>
   </header>
 
   <main>
-    <!-- Board container. Set a background image in CSS if you like. -->
     <div id="board" role="application" aria-label="Shared board"></div>
   </main>
 
-  <!-- You can host your own supabase-js bundle, but for a quick start we use the CDN. -->
+  <!-- Load supabase-js and create a client -->
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-    // 🔧 TODO: paste your Supabase values
-    const SUPABASE_URL = "https://ezqwfuisdirldwhfahja.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6cXdmdWlzZGlybGR3aGZhaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMjc2OTcsImV4cCI6MjA4NDYwMzY5N30.JoJdGH2D-w2ZJOJq13svswIUnIZehxwiThuj1YpuzkM";
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";        // e.g., https://abcxyz.supabase.co
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
-    // Basic guard so you don’t forget to paste keys
     if (SUPABASE_URL.includes("YOUR_") || SUPABASE_ANON_KEY.includes("YOUR_")) {
-      alert("Please open index.html and set SUPABASE_URL and SUPABASE_ANON_KEY.");
+      alert("Set SUPABASE_URL and SUPABASE_ANON_KEY in index.html");
     }
 
-    // Expose the client to app.js via global
+    // Make client available to app.js
     window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Optional quick ping: shows a helpful status if there is a DB error.
+    try {
+      const { data, error } = await window.supabase.from('Tokens').select('id').limit(1);
+      if (error) {
+        document.getElementById('conn-status').textContent = 'DB error: ' + error.message;
+        console.error('DB error:', error);
+      }
+    } catch (e) {
+      document.getElementById('conn-status').textContent = 'Fatal error (see console)';
+      console.error(e);
+    }
   </script>
 
-  <script type="module">
-  const sb = window.supabase;
-  console.log('Supabase client:', sb);
-  try {
-    // IMPORTANT: Your table is capitalized, so use 'Tokens'
-    const { data, error } = await sb.from('Tokens').select('id,x,y,label').limit(3);
-    console.log('Test query result:', { data, error });
-    document.getElementById('conn-status').textContent =
-      error ? ('DB error: ' + error.message) : ('Connected • fetched ' + data.length + ' Token(s)');
-  } catch (e) {
-    console.error('Fatal test error:', e);
-    document.getElementById('conn-status').textContent = 'Fatal test error (see console)';
-  }
-</script>
-  
-  <app.js</script>
+  <!-- Your app code -->
+  app.js</script>
 </body>
 </html>
-
-
-
-
-
-
