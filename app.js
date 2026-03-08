@@ -3,8 +3,8 @@ const sb = window.supabase;
 const board = document.getElementById('board');
 const statusEl = document.getElementById('conn-status');
 
-// Keep a map of tokenId -> DOM element
-const tokenEls = new Map();
+// Keep a map of TokenId -> DOM element
+const TokenEls = new Map();
 
 // Basic throttle so we don't spam updates while dragging
 function throttle(fn, ms) {
@@ -21,10 +21,10 @@ function throttle(fn, ms) {
 // --- Render helpers ---------------------------------------------------------
 
 function ensureTokenEl(row) {
-  let el = tokenEls.get(row.id);
+  let el = TokenEls.get(row.id);
   if (!el) {
     el = document.createElement('div');
-    el.className = 'token';
+    el.className = 'Token';
     el.dataset.id = row.id;
     el.title = row.label || `Token #${row.id}`;
     el.textContent = (row.label || 'A').slice(0, 1).toUpperCase(); // simple avatar
@@ -32,7 +32,7 @@ function ensureTokenEl(row) {
     if (row.id % 2 === 0) el.dataset.color = 'amber';
 
     attachDragHandlers(el);
-    tokenEls.set(row.id, el);
+    TokenEls.set(row.id, el);
     board.appendChild(el);
   }
   positionToken(el, row.x, row.y);
@@ -42,7 +42,7 @@ function ensureTokenEl(row) {
 }
 
 function positionToken(el, x, y) {
-  // Keep token fully inside the board
+  // Keep Token fully inside the board
   const rect = board.getBoundingClientRect();
   const clampedX = Math.max(0, Math.min(x ?? 0, rect.width - el.offsetWidth));
   const clampedY = Math.max(0, Math.min(y ?? 0, rect.height - el.offsetHeight));
@@ -51,9 +51,9 @@ function positionToken(el, x, y) {
 }
 
 function removeTokenEl(id) {
-  const el = tokenEls.get(id);
+  const el = TokenEls.get(id);
   if (el && el.parentNode) el.parentNode.removeChild(el);
-  tokenEls.delete(id);
+  TokenEls.delete(id);
 }
 
 // --- Drag logic (Pointer Events) -------------------------------------------
@@ -119,28 +119,28 @@ const throttledUpdate = throttle((id, x, y) => {
 
 async function writeTokenPosition(id, x, y) {
   // With RLS OFF, this is allowed for anyone. We'll add policies later.
-  const { error } = await sb.from('tokens').update({ x, y }).eq('id', id);
+  const { error } = await sb.from('Tokens').update({ x, y }).eq('id', id);
   if (error) console.error('Update error:', error);
 }
 
 async function fetchTokens() {
-  const { data, error } = await sb.from('tokens').select('*').order('id', { ascending: true });
+  const { data, error } = await sb.from('Tokens').select('*').order('id', { ascending: true });
   if (error) {
     console.error('Fetch error:', error);
-    statusEl.textContent = 'Error loading tokens';
+    statusEl.textContent = 'Error loading Tokens';
     return;
   }
   data.forEach(ensureTokenEl);
-  statusEl.textContent = `Connected • ${data.length} token(s)`;
+  statusEl.textContent = `Connected • ${data.length} Token(s)`;
 }
 
 function subscribeRealtime() {
   // Supabase v2 channel API
   const channel = sb
-    .channel('realtime:tokens')
+    .channel('realtime:Tokens')
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'tokens' },
+      { event: '*', schema: 'public', table: 'Tokens' },
       (payload) => {
         const { eventType, new: newRow, old: oldRow } = payload;
         // console.log('Realtime event', eventType, payload);
@@ -161,4 +161,5 @@ function subscribeRealtime() {
 
 // Initialize
 fetchTokens();
+
 subscribeRealtime();
