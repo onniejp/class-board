@@ -50,7 +50,7 @@ main {
 }
 
 /* Token look */
-.token {
+.Token {
   position: absolute;
   width: 36px;
   height: 36px;
@@ -67,14 +67,15 @@ main {
   font-weight: 700;
 }
 
-.token.dragging {
+.Token.dragging {
   cursor: grabbing;
   transform: scale(1.03);
   box-shadow: 0 10px 18px rgba(0,0,0,0.55);
 }
 
-.token[data-color="amber"] {
+.Token[data-color="amber"] {
   background: radial-gradient(circle at 30% 30%, #ffffffcc, var(--accent-2));
   border-color: #451a03;
   color: #3b2010;
+
 }
