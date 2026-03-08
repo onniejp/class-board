@@ -4,9 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Class Board (Prototype)</title>
-  style.css
-</head>
-<body>
+  <link rel="stylesheetdy>
   <header class="topbar">
     <h1>Class Board</h1>
     <div class="status"><span id="conn-status">Connecting…</span></div>
@@ -16,21 +14,20 @@
     <div id="board" role="application" aria-label="Shared board"></div>
   </main>
 
-  <!-- Load supabase-js and create a client -->
+  <!-- Create Supabase client -->
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-    const SUPABASE_URL = "https://ezqwfuisdirldwhfahja.supabase.co";        // e.g., https://abcxyz.supabase.co
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6cXdmdWlzZGlybGR3aGZhaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMjc2OTcsImV4cCI6MjA4NDYwMzY5N30.JoJdGH2D-w2ZJOJq13svswIUnIZehxwiThuj1YpuzkM";
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";        // e.g., https://abcxyz.supabase.co
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
     if (SUPABASE_URL.includes("YOUR_") || SUPABASE_ANON_KEY.includes("YOUR_")) {
       alert("Set SUPABASE_URL and SUPABASE_ANON_KEY in index.html");
     }
 
-    // Make client available to app.js
     window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Optional quick ping: shows a helpful status if there is a DB error.
+    // Optional: quick ping for clearer feedback while debugging
     try {
       const { data, error } = await window.supabase.from('Tokens').select('id').limit(1);
       if (error) {
@@ -43,8 +40,5 @@
     }
   </script>
 
-  <!-- Your app code -->
-  app.js</script>
-</body>
-</html>
-
+  <!-- App logic -->
+  <script type="module" src="tml>
