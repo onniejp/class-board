@@ -36,7 +36,7 @@ main {
 }
 
 #board {
-  outline: 6px solid magenta !important;
+  outline: 6px solid magenta;
   position: relative;
   width: min(1200px, 96vw);
   height: min(700px, 70vh);
@@ -80,4 +80,5 @@ main {
   color: #3b2010;
 
 }
+
 
