@@ -3,64 +3,69 @@ const sb = window.supabase;
 const board = document.getElementById('board');
 const statusEl = document.getElementById('conn-status');
 
-// Keep a map of TokenId -> DOM element
-const TokenEls = new Map();
+// Map of tokenId -> DOM element
+const tokenEls = new Map();
 
-// Basic throttle so we don't spam updates while dragging
+// Simple throttle so we don't spam updates while dragging
 function throttle(fn, ms) {
   let last = 0;
-  let queued = null;
+  let timer = null;
   return (...args) => {
     const now = Date.now();
-    const run = () => { last = now; queued = null; fn(...args); };
+    const run = () => { last = now; timer = null; fn(...args); };
     if (now - last >= ms) run();
-    else queued = setTimeout(run, ms - (now - last));
+    else if (!timer) timer = setTimeout(run, ms - (now - last));
   };
 }
 
-// --- Render helpers ---------------------------------------------------------
+// ---- Render helpers --------------------------------------------------------
 
 function ensureTokenEl(row) {
-  let el = TokenEls.get(row.id);
+  let el = tokenEls.get(row.id);
   if (!el) {
     el = document.createElement('div');
-    el.className = 'Token';
+    el.className = 'Token';               // matches your CSS (.Token)
     el.dataset.id = row.id;
     el.title = row.label || `Token #${row.id}`;
-    el.textContent = (row.label || 'A').slice(0, 1).toUpperCase(); // simple avatar
+    el.textContent = (row.label || 'A').slice(0, 1).toUpperCase();
+
     // Alternate color for fun
     if (row.id % 2 === 0) el.dataset.color = 'amber';
 
     attachDragHandlers(el);
-    TokenEls.set(row.id, el);
+    tokenEls.set(row.id, el);
     board.appendChild(el);
   }
+
   positionToken(el, row.x, row.y);
   el.title = row.label || el.title;
-  el.textContent = (row.label || 'A').slice(0,1).toUpperCase();
+  el.textContent = (row.label || 'A').slice(0, 1).toUpperCase();
   return el;
 }
 
 function positionToken(el, x, y) {
-  // Keep Token fully inside the board
   const rect = board.getBoundingClientRect();
-  const clampedX = Math.max(0, Math.min(x ?? 0, rect.width - el.offsetWidth));
-  const clampedY = Math.max(0, Math.min(y ?? 0, rect.height - el.offsetHeight));
+  const w = el.offsetWidth || 36;
+  const h = el.offsetHeight || 36;
+
+  const clampedX = Math.max(0, Math.min(x ?? 0, rect.width - w));
+  const clampedY = Math.max(0, Math.min(y ?? 0, rect.height - h));
+
   el.style.left = `${clampedX}px`;
   el.style.top  = `${clampedY}px`;
 }
 
 function removeTokenEl(id) {
-  const el = TokenEls.get(id);
+  const el = tokenEls.get(id);
   if (el && el.parentNode) el.parentNode.removeChild(el);
-  TokenEls.delete(id);
+  tokenEls.delete(id);
 }
 
-// --- Drag logic (Pointer Events) -------------------------------------------
+// ---- Drag logic (Pointer Events) ------------------------------------------
 
 function attachDragHandlers(el) {
-  let startX = 0, startY = 0;
-  let offsetX = 0, offsetY = 0;
+  let startLeft = 0, startTop = 0;
+  let pointerStartX = 0, pointerStartY = 0;
   let dragging = false;
 
   const id = Number(el.dataset.id);
@@ -71,26 +76,19 @@ function attachDragHandlers(el) {
     dragging = true;
     el.classList.add('dragging');
 
-    const rect = board.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-
-    startX = e.clientX - elRect.left + rect.left;
-    startY = e.clientY - elRect.top  + rect.top;
-
-    offsetX = parseFloat(el.style.left || '0');
-    offsetY = parseFloat(el.style.top  || '0');
+    startLeft = parseFloat(el.style.left || '0');
+    startTop  = parseFloat(el.style.top  || '0');
+    pointerStartX = e.clientX;
+    pointerStartY = e.clientY;
   };
 
   const onPointerMove = (e) => {
     if (!dragging) return;
-    const rect = board.getBoundingClientRect();
-    const dx = e.clientX - rect.left - startX;
-    const dy = e.clientY - rect.top  - startY;
-    const newX = offsetX + dx;
-    const newY = offsetY + dy;
+    const newX = startLeft + (e.clientX - pointerStartX);
+    const newY = startTop  + (e.clientY - pointerStartY);
     positionToken(el, newX, newY);
 
-    // Optional: live-throttle updates while moving (smooth for others)
+    // Smooth live updates for other clients
     throttledUpdate(id, Math.round(newX), Math.round(newY));
   };
 
@@ -99,7 +97,6 @@ function attachDragHandlers(el) {
     dragging = false;
     el.classList.remove('dragging');
 
-    // Snap final position written immediately
     const x = Math.round(parseFloat(el.style.left || '0'));
     const y = Math.round(parseFloat(el.style.top  || '0'));
     writeTokenPosition(id, x, y);
@@ -110,20 +107,18 @@ function attachDragHandlers(el) {
   window.addEventListener('pointerup', onPointerUp);
 }
 
-// Throttled updater for smooth multi-user effect
 const throttledUpdate = throttle((id, x, y) => {
   writeTokenPosition(id, x, y);
 }, 80);
 
-// --- Supabase I/O -----------------------------------------------------------
+// ---- Supabase I/O ----------------------------------------------------------
+
+function setStatus(msg) { statusEl.textContent = msg; }
 
 async function writeTokenPosition(id, x, y) {
-  // With RLS OFF, this is allowed for anyone. We'll add policies later.
   const { error } = await sb.from('Tokens').update({ x, y }).eq('id', id);
   if (error) console.error('Update error:', error);
 }
-
-function setStatus(msg) { statusEl.textContent = msg; }
 
 async function fetchTokens() {
   setStatus('Loading tokens…');
@@ -157,6 +152,4 @@ function subscribeRealtime() {
 
 // Initialize
 fetchTokens();
-
 subscribeRealtime();
-
