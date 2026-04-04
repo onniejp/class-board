@@ -64,8 +64,8 @@
   /* ── BOARD ── */
   #board-wrap {
     position: relative;
-    width: min(94vw, 94vh);
-    height: min(94vw, 94vh);
+    width: min(96vw, calc(96vh * 16 / 9));
+    height: min(54vw, 96vh);
     border-radius: 16px;
     box-shadow:
       0 0 0 10px #7A4A25,
@@ -399,9 +399,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/fireba
 import {
   getDatabase, ref, set, onValue, push, remove, onDisconnect, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
-import {
-  getStorage, ref as sRef, uploadBytesResumable, getDownloadURL
-} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-storage.js";
+
 
 const firebaseConfig = {
   apiKey:            "AIzaSyBCdKMXJEgpZnMK7kPnHbbZ_gabviXEeQw",
@@ -418,7 +416,6 @@ const DEMO_MODE = false;
 
 const app     = initializeApp(firebaseConfig);
 const db      = getDatabase(app);
-const storage = getStorage(app);
 let roomRef, piecesRef, presenceRef, myPresenceRef;
 
 // ─── ROOM ID from URL hash ───────────────────
@@ -651,69 +648,39 @@ function startFirebase() {
 startFirebase();
 
 // ─────────────────────────────────────────────
-//  BOARD IMAGE — upload to Firebase Storage, sync URL via DB
+//  BOARD IMAGE — synced via DB URL (hosted on GitHub)
 // ─────────────────────────────────────────────
 
-// Called when we receive a synced URL (from DB listener)
+// Called by the DB listener whenever boardImage URL changes
 function loadBoardImage(url) {
   boardImage.src = url;
   boardImage.onload = () => {
     boardImage.classList.add('loaded');
     board.classList.add('has-image');
   };
+  boardImage.onerror = () => showToast('Could not load image — check the URL', 4000);
 }
 
-// Upload file → Storage → write URL to DB → all clients update
-function uploadBoardImage(file) {
-  if (!file || !file.type.startsWith('image/')) return;
-
-  showToast('Uploading board image…', 30000);
-
-  const storageRef = sRef(storage, `rooms/${ROOM_ID}/board.${file.name.split('.').pop()}`);
-  const task = uploadBytesResumable(storageRef, file);
-
-  // Show progress on the button
-  const btn = document.getElementById('load-image-btn');
-  const origText = btn.textContent;
-
-  task.on('state_changed',
-    snap => {
-      const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-      btn.textContent = `🖼 Uploading… ${pct}%`;
-    },
-    err => {
-      console.error(err);
-      btn.textContent = origText;
-      showToast('Upload failed: ' + err.message, 4000);
-    },
-    async () => {
-      const url = await getDownloadURL(task.snapshot.ref);
-      // Write URL to DB — all players will receive it via onValue listener
-      await set(ref(db, `rooms/${ROOM_ID}/boardImage`), url);
-      btn.textContent = origText;
-      showToast('Board updated for all players!');
-    }
-  );
+// Write a new GitHub raw URL to DB — all players receive it instantly
+function setBoardImageUrl(url) {
+  url = url.trim();
+  if (!url) return;
+  set(ref(db, `rooms/${ROOM_ID}/boardImage`), url)
+    .then(() => showToast('Board updated for all players!'))
+    .catch(e => showToast('Error: ' + e.message, 4000));
 }
 
-board.addEventListener('dragover', e => {
-  e.preventDefault();
-  board.classList.add('drag-over');
+document.getElementById('set-image-btn').addEventListener('click', () => {
+  const inp = document.getElementById('image-url-input');
+  setBoardImageUrl(inp.value);
+  inp.value = '';
 });
 
-board.addEventListener('dragleave', () => board.classList.remove('drag-over'));
-
-board.addEventListener('drop', e => {
-  e.preventDefault();
-  board.classList.remove('drag-over');
-  uploadBoardImage(e.dataTransfer.files[0]);
-});
-
-document.getElementById('load-image-btn').addEventListener('click', () => {
-  const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = 'image/*';
-  inp.onchange = () => uploadBoardImage(inp.files[0]);
-  inp.click();
+document.getElementById('image-url-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    setBoardImageUrl(e.target.value);
+    e.target.value = '';
+  }
 });
 
 // ─────────────────────────────────────────────
@@ -789,7 +756,12 @@ document.getElementById('share-url').addEventListener('click', () => {
 <div id="panel">
   <h2>Game Tools</h2>
 
-  <button class="panel-btn" id="load-image-btn">🖼 Load Board Image</button>
+  <h2 style="margin-top:4px">Board Image URL</h2>
+  <input id="image-url-input" type="url" placeholder="https://raw.githubusercontent.com/…"
+    style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(212,160,23,0.3);
+    border-radius:6px;color:var(--cream);font-family:'Cinzel',serif;font-size:10px;
+    padding:8px 10px;outline:none;box-sizing:border-box;" />
+  <button class="panel-btn" id="set-image-btn" style="margin-top:4px">🖼 Set Board Image</button>
 
   <h2 style="margin-top:4px">Add Piece</h2>
   <div id="add-piece-colors"></div>
@@ -802,7 +774,7 @@ document.getElementById('share-url').addEventListener('click', () => {
   <div style="margin-top:auto; font-size:10px; color:rgba(245,236,215,0.3); line-height:1.6">
     Room: <span id="room-label" style="color:var(--gold)"></span><br>
     Double-click a piece to remove it.<br>
-    Drop an image onto the board.
+    Paste a GitHub raw URL to set the board.
   </div>
 </div>
 
@@ -813,7 +785,7 @@ document.getElementById('share-url').addEventListener('click', () => {
       <img id="board-image" alt="board">
       <div id="drop-hint">
         <div class="icon">🖼</div>
-        <div>Drop a board image here<br>or use the toolbar to load one</div>
+        <div>Paste a GitHub raw image URL<br>in the toolbar to set the board</div>
       </div>
     </div>
   </div>
