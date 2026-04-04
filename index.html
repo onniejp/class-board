@@ -399,6 +399,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/fireba
 import {
   getDatabase, ref, set, onValue, push, remove, onDisconnect, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+import {
+  getStorage, ref as sRef, uploadBytesResumable, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyBCdKMXJEgpZnMK7kPnHbbZ_gabviXEeQw",
@@ -413,8 +416,9 @@ const firebaseConfig = {
 
 const DEMO_MODE = false;
 
-const app = initializeApp(firebaseConfig);
-const db  = getDatabase(app);
+const app     = initializeApp(firebaseConfig);
+const db      = getDatabase(app);
+const storage = getStorage(app);
 let roomRef, piecesRef, presenceRef, myPresenceRef;
 
 // ─── ROOM ID from URL hash ───────────────────
@@ -622,16 +626,14 @@ function startFirebase() {
   // Pieces
   onValue(piecesRef, snap => {
     const remote = snap.val() || {};
+    Object.keys(pieces).forEach(id => { if (!remote[id]) removePiece(id); });
+    Object.entries(remote).forEach(([id, data]) => { syncPiece(id, data, true); });
+  });
 
-    // remove deleted
-    Object.keys(pieces).forEach(id => {
-      if (!remote[id]) removePiece(id);
-    });
-
-    // add / update
-    Object.entries(remote).forEach(([id, data]) => {
-      syncPiece(id, data, true);
-    });
+  // Board image — sync URL for all players
+  onValue(ref(db, `rooms/${ROOM_ID}/boardImage`), snap => {
+    const url = snap.val();
+    if (url) loadBoardImage(url);
   });
 
   // Presence
@@ -649,14 +651,49 @@ function startFirebase() {
 startFirebase();
 
 // ─────────────────────────────────────────────
-//  BOARD IMAGE — drop or file picker
+//  BOARD IMAGE — upload to Firebase Storage, sync URL via DB
 // ─────────────────────────────────────────────
-function loadBoardImage(src) {
-  boardImage.src = src;
+
+// Called when we receive a synced URL (from DB listener)
+function loadBoardImage(url) {
+  boardImage.src = url;
   boardImage.onload = () => {
     boardImage.classList.add('loaded');
     board.classList.add('has-image');
   };
+}
+
+// Upload file → Storage → write URL to DB → all clients update
+function uploadBoardImage(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+
+  showToast('Uploading board image…', 30000);
+
+  const storageRef = sRef(storage, `rooms/${ROOM_ID}/board.${file.name.split('.').pop()}`);
+  const task = uploadBytesResumable(storageRef, file);
+
+  // Show progress on the button
+  const btn = document.getElementById('load-image-btn');
+  const origText = btn.textContent;
+
+  task.on('state_changed',
+    snap => {
+      const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+      btn.textContent = `🖼 Uploading… ${pct}%`;
+    },
+    err => {
+      console.error(err);
+      btn.textContent = origText;
+      showToast('Upload failed: ' + err.message, 4000);
+    },
+    async () => {
+      const url = await getDownloadURL(task.snapshot.ref);
+      // Write URL to DB — all players will receive it via onValue listener
+      await set(ref(db, `rooms/${ROOM_ID}/boardImage`), url);
+      btn.textContent = origText;
+      showToast('Board updated for all players!');
+    }
+  );
 }
 
 board.addEventListener('dragover', e => {
@@ -669,19 +706,13 @@ board.addEventListener('dragleave', () => board.classList.remove('drag-over'));
 board.addEventListener('drop', e => {
   e.preventDefault();
   board.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file && file.type.startsWith('image/')) {
-    const url = URL.createObjectURL(file);
-    loadBoardImage(url);
-  }
+  uploadBoardImage(e.dataTransfer.files[0]);
 });
 
 document.getElementById('load-image-btn').addEventListener('click', () => {
   const inp = document.createElement('input');
   inp.type = 'file'; inp.accept = 'image/*';
-  inp.onchange = () => {
-    if (inp.files[0]) loadBoardImage(URL.createObjectURL(inp.files[0]));
-  };
+  inp.onchange = () => uploadBoardImage(inp.files[0]);
   inp.click();
 });
 
