@@ -1,0 +1,49 @@
+old rules
+========================
+{
+  "rules": {
+    ".read": "now < 1777870800000",  // 2026-5-4
+    ".write": "now < 1777870800000",  // 2026-5-4
+  }
+}
+
+====================
+new rules
+====================
+{
+  "rules": {
+    "rooms": {
+      "$roomId": {
+        ".read": true,
+        ".write": true,
+
+        "pieces": {
+          "$pieceId": {
+            ".validate": "
+              newData.hasChildren(['x','y','color','emoji']) &&
+              newData.child('x').isNumber() &&
+              newData.child('y').isNumber() &&
+              newData.child('x').val() >= 0 &&
+              newData.child('x').val() <= 1 &&
+              newData.child('y').val() >= 0 &&
+              newData.child('y').val() <= 1 &&
+              newData.child('color').isString() &&
+              newData.child('emoji').isString()
+            "
+          }
+        },
+
+        "boardImage": {
+          ".validate": "newData.isString()"
+        },
+
+        "presence": {
+          "$connId": {
+            ".write": true,
+            ".read": true
+          }
+        }
+      }
+    }
+  }
+}
