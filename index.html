@@ -475,7 +475,7 @@ const firebaseConfig = {
 };
 
 const DEMO_MODE = false;
-const ROOM_ID = getRoomId();
+
 const app     = initializeApp(firebaseConfig);
 const db      = getDatabase(app);
 let roomRef, piecesRef, presenceRef, myPresenceRef;
@@ -709,6 +709,58 @@ function startFirebase() {
 
 startFirebase();
 
+    // ── DICE (MULTI, SYNCED) ────────────────────
+const diceRef = ref(db, `rooms/${ROOM_ID}/dice`);
+const diceRow = document.getElementById('dice-row');
+const dice = {};
+
+function renderDie(id, value) {
+  let el = dice[id];
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'die';
+    el.textContent = '🎲 ' + value;
+    el.addEventListener('click', () => rollDie(id));
+    dice[id] = el;
+    diceRow.appendChild(el);
+  } else {
+    el.textContent = '🎲 ' + value;
+  }
+}
+
+function removeDieEl(id) {
+  if (dice[id]) {
+    dice[id].remove();
+    delete dice[id];
+  }
+}
+
+onValue(diceRef, snap => {
+  const data = snap.val() || {};
+  Object.keys(dice).forEach(id => {
+    if (!data[id]) removeDieEl(id);
+  });
+  Object.entries(data).forEach(([id, d]) => {
+    renderDie(id, d.value);
+  });
+});
+
+  function rollDie(id) {
+  const value = Math.floor(Math.random() * 6) + 1;
+  set(ref(db, `rooms/${ROOM_ID}/dice/${id}`), { value });
+}
+
+document.getElementById('add-die').addEventListener('click', () => {
+  const newRef = push(diceRef);
+  set(newRef, { value: Math.floor(Math.random() * 6) + 1 });
+});
+
+document.getElementById('remove-die').addEventListener('click', () => {
+  const ids = Object.keys(dice);
+  if (ids.length === 0) return;
+  remove(ref(db, `rooms/${ROOM_ID}/dice/${ids[ids.length - 1]}`));
+});
+
 // ─────────────────────────────────────────────
 //  BOARD IMAGE — synced via DB URL (hosted on GitHub)
 // ─────────────────────────────────────────────
@@ -801,58 +853,6 @@ document.getElementById('copy-btn').addEventListener('click', () => {
 });
 document.getElementById('share-url').addEventListener('click', () => {
   navigator.clipboard.writeText(location.href).then(() => showToast('Link copied!'));
-});
-
-  // ── DICE (MULTI, SYNCED) ────────────────────
-const diceRef = ref(db, `rooms/${ROOM_ID}/dice`);
-const diceRow = document.getElementById('dice-row');
-const dice = {};
-
-function renderDie(id, value) {
-  let el = dice[id];
-  if (!el) {
-    el = document.createElement('div');
-    el.className = 'die';
-    el.textContent = '🎲 ' + value;
-    el.addEventListener('click', () => rollDie(id));
-    dice[id] = el;
-    diceRow.appendChild(el);
-  } else {
-    el.textContent = '🎲 ' + value;
-  }
-}
-
-function removeDieEl(id) {
-  if (dice[id]) {
-    dice[id].remove();
-    delete dice[id];
-  }
-}
-
-onValue(diceRef, snap => {
-  const data = snap.val() || {};
-  Object.keys(dice).forEach(id => {
-    if (!data[id]) removeDieEl(id);
-  });
-  Object.entries(data).forEach(([id, d]) => {
-    renderDie(id, d.value);
-  });
-});
-
-  function rollDie(id) {
-  const value = Math.floor(Math.random() * 6) + 1;
-  set(ref(db, `rooms/${ROOM_ID}/dice/${id}`), { value });
-}
-
-document.getElementById('add-die').addEventListener('click', () => {
-  const newRef = push(diceRef);
-  set(newRef, { value: Math.floor(Math.random() * 6) + 1 });
-});
-
-document.getElementById('remove-die').addEventListener('click', () => {
-  const ids = Object.keys(dice);
-  if (ids.length === 0) return;
-  remove(ref(db, `rooms/${ROOM_ID}/dice/${ids[ids.length - 1]}`));
 });
   
 </script>
