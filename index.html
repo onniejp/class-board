@@ -389,6 +389,32 @@
     :root { --piece-size: 44px; }
     #panel { width: 170px; }
   }
+
+  /* ── DICE AREA ── */
+#dice-area {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  display: flex;
+  gap: 10px;
+  z-index: 400;
+}
+
+.die {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: rgba(20,10,3,0.9);
+  border: 2px solid rgba(212,160,23,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  cursor: pointer;
+  color: var(--gold-light);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+  user-select: none;
+}
 </style>
 </head>
 <body>
@@ -807,5 +833,10 @@ document.getElementById('share-url').addEventListener('click', () => {
     if (lbl) lbl.textContent = location.hash.slice(1);
   });
 </script>
+  
+<!-- Dice Area -->
+<div id="dice-area"></div>
+
+  
 </body>
 </html>
