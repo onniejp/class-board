@@ -385,10 +385,12 @@
     box-shadow: inset 0 0 40px rgba(212,160,23,0.15) !important;
   }
 
-  @media (max-width: 500px) {
-    :root { --piece-size: 44px; }
-    #panel { width: 170px; }
-  }
+  
+@media (max-width: 500px) {
+  :root { --piece-size: 44px; }
+  .piece { font-size: calc(var(--piece-size) * 0.5); }
+  #panel { width: 170px; }
+}
 
   #local-die {
   position: fixed;
