@@ -467,6 +467,7 @@ const playerCountEl = document.getElementById('player-count');
 const panel       = document.getElementById('panel');
 const toast       = document.getElementById('toast');
 const shareUrl    = document.getElementById('share-url');
+const dieRef      = ref(db, `rooms/${ROOM_ID}/die`);
 
 // ─── State ───────────────────────────────────
 let pieces = {};          // id → {el, data}
@@ -662,6 +663,16 @@ function startFirebase() {
     if (url) loadBoardImage(url);
   });
 
+  //Die
+  const dieValueEl = document.querySelector('#local-die .die-value');
+
+onValue(dieRef, snap => {
+  const data = snap.val();
+  if (data && typeof data.value === 'number') {
+    dieValueEl.textContent = data.value;
+  }
+});
+
   // Presence
   myPresenceRef = push(presenceRef);
   set(myPresenceRef, { joined: serverTimestamp() });
@@ -845,15 +856,13 @@ document.getElementById('share-url').addEventListener('click', () => {
 
   <script>
   (function () {
-    const die = document.querySelector('#local-die .die-emoji');
-    const value = document.querySelector('#local-die .die-value');
+    const dieEl = document.querySelector('#local-die .die-emoji');
 
-    if (!die || !value) return;
-
-    die.addEventListener('click', () => {
-      const roll = Math.floor(Math.random() * 6) + 1;
-      value.textContent = roll;
-    });
+dieEl.addEventListener('click', () => {
+  const roll = Math.floor(Math.random() * 6) + 1;
+  set(dieRef, { value: roll });
+});
+    
   })();
 </script>
   
