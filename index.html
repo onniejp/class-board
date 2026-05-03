@@ -389,8 +389,39 @@
     :root { --piece-size: 44px; }
     #panel { width: 170px; }
   }
+
+  #local-die {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(20,10,3,0.9);
+  border: 1px solid rgba(212,160,23,0.4);
+  border-radius: 14px;
+  z-index: 400;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+  font-size: 20px;
+}
+
+#local-die .die-emoji { cursor: pointer; }
+
+#local-die .die-value {
+  font-size: 18px;
+  color: var(--gold-light);
+  min-width: 1ch;
+}
+  
 </style>
 </head>
+
+  <div id="local-die">
+  <span class="die-emoji">🎲</span>
+  <span class="die-value">–</span>
+</div>
+  
 <body>
 
 <!-- Firebase SDKs -->
@@ -740,6 +771,25 @@ document.getElementById('copy-btn').addEventListener('click', () => {
 document.getElementById('share-url').addEventListener('click', () => {
   navigator.clipboard.writeText(location.href).then(() => showToast('Link copied!'));
 });
+
+  // ── SHARED DIE ─────────────────────────────
+const dieRef     = ref(db, `rooms/${ROOM_ID}/die`);
+const dieEmojiEl = document.querySelector('#local-die .die-emoji');
+const dieValueEl = document.querySelector('#local-die .die-value');
+
+dieEmojiEl.addEventListener('click', () => {
+  const roll = Math.floor(Math.random() * 6) + 1;
+  set(dieRef, { value: roll });
+});
+
+onValue(dieRef, snap => {
+  const data = snap.val();
+  if (data && typeof data.value === 'number') {
+    dieValueEl.textContent = data.value;
+  }
+});
+``
+  
 </script>
 
 <!-- HUD -->
