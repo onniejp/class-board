@@ -391,7 +391,14 @@
   .piece { font-size: calc(var(--piece-size) * 0.5); }
   #panel { width: 170px; }
 }
+  
+@media (max-width: 500px) and (orientation: portrait) {
+  :root { --piece-size: 18px; }
+}
 
+@media (max-width: 500px) and (orientation: landscape) {
+  :root { --piece-size: 23px; }
+}
   #local-die {
   position: fixed;
   bottom: 16px;
