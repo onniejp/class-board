@@ -47,3 +47,60 @@ new rules
     }
   }
 }
+
+===================
+added dice support
+===================
+{
+  "rules": {
+    "rooms": {
+      "$roomId": {
+        ".read": true,
+        ".write": true,
+
+        "pieces": {
+          "$pieceId": {
+            ".validate": "
+              newData.hasChildren(['x','y','color','emoji']) &&
+              newData.child('x').isNumber() &&
+              newData.child('y').isNumber() &&
+              newData.child('x').val() >= 0 &&
+              newData.child('x').val() <= 1 &&
+              newData.child('y').val() >= 0 &&
+              newData.child('y').val() <= 1 &&
+              newData.child('color').isString() &&
+              newData.child('emoji').isString()
+            "
+          }
+        },
+
+        "dice": {
+          "$dieId": {
+            ".validate": "
+              newData.hasChild('value') &&
+              (
+                newData.child('value').isString() ||
+                (
+                  newData.child('value').isNumber() &&
+                  newData.child('value').val() >= 1 &&
+                  newData.child('value').val() <= 6
+                )
+              )
+            "
+          }
+        },
+
+        "boardImage": {
+          ".validate": "newData.isString()"
+        },
+
+        "presence": {
+          "$connId": {
+            ".read": true,
+            ".write": true
+          }
+        }
+      }
+    }
+  }
+}
