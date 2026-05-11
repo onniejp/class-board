@@ -584,6 +584,8 @@ let selectedColor = 'red';
 let selectedEmoji = '♟';
 let isPanelOpen   = false;
 let localDragging = null;  // id being dragged locally
+let deckCards = [];
+let deckName = "Deck";
 
 // ─── Share URL ───────────────────────────────
 shareUrl.textContent = location.href;
@@ -786,32 +788,45 @@ function startFirebase() {
 
 startFirebase();
 
-const testDeck = document.createElement('div');
-testDeck.className = 'deck';
-testDeck.textContent = 'TEST DECK';
+function updateDeckUI() {
+  const deckArea = document.getElementById('deck-area');
+  deckArea.innerHTML = '';
 
-testDeck.addEventListener('click', spawnTestCard);
+  const deck = document.createElement('div');
+  deck.className = 'deck';
+  deck.textContent = deckName;
 
-document.getElementById('deck-area').appendChild(testDeck);
+  deck.addEventListener('click', spawnTestCard);
 
-  function spawnTestCard() {
+  deckArea.appendChild(deck);
+}
+
+// initialize empty deck UI
+updateDeckUI();
+
+function spawnTestCard() {
+  if (!deckCards.length) {
+    showToast("No deck loaded");
+    return;
+  }
+
+  const random = deckCards[Math.floor(Math.random() * deckCards.length)];
+
   const card = document.createElement('div');
   card.className = 'card';
 
   card.innerHTML = `
     <div class="close">✖</div>
-    <div style="font-weight:bold; margin-bottom:6px;">Test Card</div>
-    <img src="https://picsum.photos/200/120">
-    <div style="margin-top:6px;">This is a sample event.</div>
+    <div style="font-weight:bold; margin-bottom:6px;">${random.top}</div>
+    ${random.img ? `<img src="${random.img}">` : ""}
+    <div style="margin-top:6px;">${random.bottom}</div>
   `;
 
-  // random starting position
   card.style.left = (window.innerWidth * 0.4) + 'px';
-  card.style.top = (window.innerHeight * 0.3) + 'px';
+  card.style.top  = (window.innerHeight * 0.3) + 'px';
 
   makeCardDraggable(card);
 
-  // close button
   card.querySelector('.close').addEventListener('click', () => {
     card.remove();
   });
@@ -900,6 +915,50 @@ document.getElementById('remove-die').addEventListener('click', () => {
   remove(ref(db, `rooms/${ROOM_ID}/dice/${ids[ids.length - 1]}`));
 });
 
+// ─────────────────────────────────────────────
+//  CARD DECK LOADER (Google Sheets)
+// ─────────────────────────────────────────────
+
+function convertSheetUrlToCSV(url) {
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) return null;
+  return `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
+}
+
+async function loadDeckFromSheet(url) {
+  const csvUrl = convertSheetUrlToCSV(url);
+
+  if (!csvUrl) {
+    showToast("Invalid Google Sheet URL");
+    return;
+  }
+
+  try {
+    const res = await fetch(csvUrl);
+    const text = await res.text();
+
+    const rows = text.split('\n').map(r => r.split(','));
+
+    const header = rows[0];
+    deckName = header[0] || "Deck";
+
+    deckCards = rows.slice(1).map((row, index) => ({
+      id: index,
+      top: row[0] || "",
+      bottom: row[1] || "",
+      img: row[2] || "",
+      special: (row[3] || "").toLowerCase() === "true"
+    }));
+
+    showToast(`Loaded ${deckCards.length} cards`);
+
+    updateDeckUI();
+
+  } catch (e) {
+    showToast("Failed to load sheet");
+    console.error(e);
+  }
+}
   
 // ─────────────────────────────────────────────
 //  BOARD IMAGE — synced via DB URL (hosted on GitHub)
@@ -994,6 +1053,13 @@ document.getElementById('copy-btn').addEventListener('click', () => {
 document.getElementById('share-url').addEventListener('click', () => {
   navigator.clipboard.writeText(location.href).then(() => showToast('Link copied!'));
 });
+
+  //Load Deck Button
+document.getElementById('load-deck-btn').addEventListener('click', () => {
+  const url = document.getElementById('deck-url-input').value;
+  loadDeckFromSheet(url);
+});
+
   
 </script>
 
