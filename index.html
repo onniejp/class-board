@@ -779,6 +779,11 @@ function startFirebase() {
 
 startFirebase();
 
+  const testDeck = document.createElement('div');
+testDeck.className = 'deck';
+testDeck.textContent = 'TEST DECK';
+document.getElementById('deck-area').appendChild(testDeck);
+  
     // ── DICE (MULTI, SYNCED) ────────────────────
 const diceRef = ref(db, `rooms/${ROOM_ID}/dice`);
 const diceRow = document.getElementById('dice-row');
