@@ -786,10 +786,67 @@ function startFirebase() {
 
 startFirebase();
 
-  const testDeck = document.createElement('div');
+const testDeck = document.createElement('div');
 testDeck.className = 'deck';
 testDeck.textContent = 'TEST DECK';
+
+testDeck.addEventListener('click', spawnTestCard);
+
 document.getElementById('deck-area').appendChild(testDeck);
+
+  function spawnTestCard() {
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  card.innerHTML = `
+    <div class="close">✖</div>
+    <div style="font-weight:bold; margin-bottom:6px;">Test Card</div>
+    <img src="https://picsum.photos/200/120">
+    <div style="margin-top:6px;">This is a sample event.</div>
+  `;
+
+  // random starting position
+  card.style.left = (window.innerWidth * 0.4) + 'px';
+  card.style.top = (window.innerHeight * 0.3) + 'px';
+
+  makeCardDraggable(card);
+
+  // close button
+  card.querySelector('.close').addEventListener('click', () => {
+    card.remove();
+  });
+
+  document.body.appendChild(card);
+}
+
+  function makeCardDraggable(el) {
+  let offsetX = 0;
+  let offsetY = 0;
+  let dragging = false;
+
+  el.addEventListener('mousedown', e => {
+    dragging = true;
+    offsetX = e.clientX - el.offsetLeft;
+    offsetY = e.clientY - el.offsetTop;
+    el.style.cursor = 'grabbing';
+
+    function move(e2) {
+      if (!dragging) return;
+      el.style.left = (e2.clientX - offsetX) + 'px';
+      el.style.top  = (e2.clientY - offsetY) + 'px';
+    }
+
+    function up() {
+      dragging = false;
+      el.style.cursor = 'grab';
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    }
+
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  });
+}
   
     // ── DICE (MULTI, SYNCED) ────────────────────
 const diceRef = ref(db, `rooms/${ROOM_ID}/dice`);
