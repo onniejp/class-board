@@ -399,6 +399,14 @@
 @media (max-width: 500px) and (orientation: landscape) {
   :root { --piece-size: 46px; }
 }
+
+  #deck-area {
+  position: fixed;
+  bottom: 80px;
+  left: 16px;
+  z-index: 450;
+}
+  
   #local-die {
   position: fixed;
   bottom: 16px;
@@ -465,9 +473,7 @@
   font-size: 10px;
   text-align: center;
   cursor: pointer;
-  position: absolute;
-  bottom: 90px;
-  left: 16px;
+  position: relative;
   box-shadow: 0 6px 20px rgba(0,0,0,0.7);
 }
 
