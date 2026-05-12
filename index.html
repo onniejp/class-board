@@ -531,6 +531,10 @@
 
   <!-- ── DECK AREA ───────────────────────── -->
 <div id="deck-area"></div>
+
+<div id="hand">
+  <div style="font-size:10px; margin-bottom:6px; color:#ccc;">Your Hand</div>
+</div>
   
 <!-- Firebase SDKs -->
 <script type="module">
@@ -589,6 +593,7 @@ let deckName = "Deck";
 let drawPile = [];
 let discardPile = [];
 let activeCard = null;
+let playerHand = []
 
 // ─── Share URL ───────────────────────────────
 shareUrl.textContent = location.href;
@@ -852,11 +857,20 @@ function spawnTestCard() {
   makeCardDraggable(card);
 
   // ❌ clicking X = return to bottom of deck (discard)
-  card.querySelector('.close').addEventListener('click', () => {
+card.querySelector('.close').addEventListener('click', () => {
+
+  if (activeCard.special) {
+    // ✅ special cards go to hand
+    playerHand.push(activeCard);
+    addCardToHand(activeCard);
+  } else {
+    // ✅ normal cards go to discard
     discardPile.push(activeCard);
-    activeCard = null;
-    card.remove();
-  });
+  }
+
+  activeCard = null;
+  card.remove();
+});
 
   document.body.appendChild(card);
 }
@@ -889,7 +903,31 @@ function spawnTestCard() {
     window.addEventListener('mouseup', up);
   });
 }
-  
+
+// ✅ ✅ ADD THIS RIGHT HERE
+function addCardToHand(cardData) {
+  const hand = document.getElementById('hand');
+
+  const mini = document.createElement('div');
+  mini.style.background = "#fff";
+  mini.style.color = "#000";
+  mini.style.padding = "6px";
+  mini.style.marginBottom = "6px";
+  mini.style.borderRadius = "6px";
+  mini.style.fontSize = "10px";
+  mini.style.cursor = "pointer";
+
+  mini.textContent = cardData.top;
+
+  // click to remove from hand
+  mini.addEventListener('click', () => {
+    mini.remove();
+    playerHand = playerHand.filter(c => c !== cardData);
+  });
+
+  hand.appendChild(mini);
+}
+
     // ── DICE (MULTI, SYNCED) ────────────────────
 const diceRef = ref(db, `rooms/${ROOM_ID}/dice`);
 const diceRow = document.getElementById('dice-row');
