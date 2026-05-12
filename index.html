@@ -586,6 +586,9 @@ let isPanelOpen   = false;
 let localDragging = null;  // id being dragged locally
 let deckCards = [];
 let deckName = "Deck";
+let drawPile = [];
+let discardPile = [];
+let activeCard = null;
 
 // ─── Share URL ───────────────────────────────
 shareUrl.textContent = location.href;
@@ -805,21 +808,42 @@ function updateDeckUI() {
 updateDeckUI();
 
 function spawnTestCard() {
-  if (!deckCards.length) {
-    showToast("No deck loaded");
+
+  // ✅ If a card is already active → discard it
+  if (activeCard) {
+    discardPile.push(activeCard);
+    activeCard = null;
+    document.querySelectorAll('.card').forEach(c => c.remove());
     return;
   }
 
-  const random = deckCards[Math.floor(Math.random() * deckCards.length)];
+  // ✅ If deck is empty
+  if (drawPile.length === 0) {
+    if (discardPile.length === 0) {
+      showToast("Deck is empty");
+      return;
+    }
+
+    // reshuffle discard into draw pile
+    drawPile = [...discardPile];
+    discardPile = [];
+    shuffle(drawPile);
+
+    showToast("Deck reshuffled");
+  }
+
+  // ✅ draw top card
+  const cardData = drawPile.pop();
+  activeCard = cardData;
 
   const card = document.createElement('div');
   card.className = 'card';
 
   card.innerHTML = `
     <div class="close">✖</div>
-    <div style="font-weight:bold; margin-bottom:6px;">${random.top}</div>
-    ${random.img ? `<img src="${random.img}">` : ""}
-    <div style="margin-top:6px;">${random.bottom}</div>
+    <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
+    ${cardData.img ? `<img src="${cardData.img}">` : ""}
+    <div style="margin-top:6px;">${cardData.bottom}</div>
   `;
 
   card.style.left = (window.innerWidth * 0.4) + 'px';
@@ -827,7 +851,10 @@ function spawnTestCard() {
 
   makeCardDraggable(card);
 
+  // ❌ clicking X = return to bottom of deck (discard)
   card.querySelector('.close').addEventListener('click', () => {
+    discardPile.push(activeCard);
+    activeCard = null;
     card.remove();
   });
 
@@ -916,8 +943,15 @@ document.getElementById('remove-die').addEventListener('click', () => {
 });
 
 // ─────────────────────────────────────────────
-//  CARD DECK LOADER (Google Sheets)
+//  CARD DECK LOADER (github raw)
 // ─────────────────────────────────────────────
+
+  function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
 
 function convertSheetUrlToCSV(url) {
   const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
@@ -961,6 +995,13 @@ async function loadDeckFromSheet(url) {
       img: row[2] || "",
       special: (row[3] || "").toLowerCase() === "true"
     }));
+
+    // initialize draw pile (shuffle)
+drawPile = [...deckCards];
+discardPile = [];
+activeCard = null;
+
+shuffle(drawPile);
 
     showToast(`Loaded ${deckCards.length} cards`);
     updateDeckUI();
