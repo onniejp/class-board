@@ -1,0 +1,52 @@
+Demo Events Deck (mode:shuffle),,,
+TOP,BOTTOM,IMAGE,SPECIAL
+Lost Map,You discover an old map.,https://picsum.photos/200/120?1,false
+Hidden Cache,You gain supplies.,https://picsum.photos/200/120?2,false
+Sudden Storm,All players lose a turn.,https://picsum.photos/200/120?3,false
+Ancient Relic,Keep this artifact.,https://picsum.photos/200/120?4,true
+Mysterious Stranger,They offer a trade.,https://picsum.photos/200/120?5,false
+Ambush,You are attacked unexpectedly.,https://picsum.photos/200/120?6,false
+Lucky Find,Gain bonus resources.,https://picsum.photos/200/120?7,false
+Broken Tool,Lose one item.,https://picsum.photos/200/120?8,false
+Old Friend,Gain a useful ally.,https://picsum.photos/200/120?9,true
+Dark Tunnel,Proceed with caution.,https://picsum.photos/200/120?10,false
+Treasure Chest,Gain riches instantly.,https://picsum.photos/200/120?11,false
+Strange Noise,You hesitate briefly.,https://picsum.photos/200/120?12,false
+Secret Passage,Move to a new location.,https://picsum.photos/200/120?13,false
+Magic Scroll,Keep for later use.,https://picsum.photos/200/120?14,true
+Silent Room,Nothing happens.,https://picsum.photos/200/120?15,false
+Falling Debris,Lose progress.,https://picsum.photos/200/120?16,false
+Helpful Guide,Gain direction.,https://picsum.photos/200/120?17,false
+Lost Item,Discard a card.,https://picsum.photos/200/120?18,false
+Sacred Token,Keep indefinitely.,https://picsum.photos/200/120?19,true
+Echoing Hall,You feel uneasy.,https://picsum.photos/200/120?20,false
+Abandoned Camp,Find useful gear.,https://picsum.photos/200/120?21,false
+Sudden Light,Reveal hidden path.,https://picsum.photos/200/120?22,false
+Trap Door,Fall back one space.,https://picsum.photos/200/120?23,false
+Gold Coins,Gain wealth.,https://picsum.photos/200/120?24,false
+Cursed Idol,Keep but at a risk.,https://picsum.photos/200/120?25,true
+Wild Animal,You must retreat.,https://picsum.photos/200/120?26,false
+River Crossing,Lose time.,https://picsum.photos/200/120?27,false
+Ancient Text,Learn a secret.,https://picsum.photos/200/120?28,false
+Battle Scar,Reduce ability.,https://picsum.photos/200/120?29,false
+Healing Fountain,Recover fully.,https://picsum.photos/200/120?30,false
+Rare Gem,Keep for scoring.,https://picsum.photos/200/120?31,true
+Foggy Path,Visibility reduced.,https://picsum.photos/200/120?32,false
+Broken Bridge,Find another route.,https://picsum.photos/200/120?33,false
+Hidden Ally,Gain a companion.,https://picsum.photos/200/120?34,true
+Ancient Statue,Nothing happens.,https://picsum.photos/200/120?35,false
+Buried Treasure,Gain extra reward.,https://picsum.photos/200/120?36,false
+Wandering Merchant,Trade items.,https://picsum.photos/200/120?37,false
+Lost Signal,Communication fails.,https://picsum.photos/200/120?38,false
+Power Crystal,Keep for bonus.,https://picsum.photos/200/120?39,true
+Dust Storm,Movement slowed.,https://picsum.photos/200/120?40,false
+Treasure Map Clue,Combine for reward.,https://picsum.photos/200/120?41,true
+Collapsed Path,Go back one space.,https://picsum.photos/200/120?42,false
+Ancient Door,Requires a key.,https://picsum.photos/200/120?43,false
+Lucky Coin,Keep for reroll.,https://picsum.photos/200/120?44,true
+Strange Artifact,Unknown effects.,https://picsum.photos/200/120?45,true
+Quiet Camp,Rest safely.,https://picsum.photos/200/120?46,false
+Hidden Trapdoor,Fall unexpectedly.,https://picsum.photos/200/120?47,false
+Mysterious Light,Draw again.,https://picsum.photos/200/120?48,false
+Guardian Spirit,Protect yourself.,https://picsum.photos/200/120?49,true
+Final Discovery,Gain major reward.,https://picsum.photos/200/120?50,false
