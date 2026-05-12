@@ -926,23 +926,35 @@ function convertSheetUrlToCSV(url) {
 }
 
 async function loadDeckFromSheet(url) {
-  const csvUrl = convertSheetUrlToCSV(url);
 
-  if (!csvUrl) {
-    showToast("Invalid Google Sheet URL");
+  let fetchUrl = url;
+
+  // ✅ If it's Google Sheets, convert it
+  if (url.includes("docs.google.com")) {
+    fetchUrl = convertSheetUrlToCSV(url);
+  }
+
+  // ✅ DEBUG: confirm what URL is actually used
+  console.log("FETCH URL:", fetchUrl);
+
+  if (!fetchUrl) {
+    showToast("Invalid deck URL");
     return;
   }
 
   try {
-    const res = await fetch(csvUrl);
+    const res = await fetch(fetchUrl);
     const text = await res.text();
+
+    // ✅ DEBUG: show what we actually received
+    console.log("FIRST 200 CHARS:", text.slice(0, 200));
 
     const rows = text.split('\n').map(r => r.split(','));
 
     const header = rows[0];
     deckName = header[0] || "Deck";
 
-    deckCards = rows.slice(1).map((row, index) => ({
+    deckCards = rows.slice(2).map((row, index) => ({
       id: index,
       top: row[0] || "",
       bottom: row[1] || "",
@@ -951,12 +963,11 @@ async function loadDeckFromSheet(url) {
     }));
 
     showToast(`Loaded ${deckCards.length} cards`);
-
     updateDeckUI();
 
   } catch (e) {
-    showToast("Failed to load sheet");
     console.error(e);
+    showToast("Failed to load deck");
   }
 }
   
