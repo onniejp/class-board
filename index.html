@@ -857,15 +857,15 @@ function spawnTestCard() {
   makeCardDraggable(card);
 
   // ❌ clicking X = return to bottom of deck (discard)
+const thisCard = cardData; // ✅ capture correct reference
+
 card.querySelector('.close').addEventListener('click', () => {
 
-  if (activeCard.special) {
-    // ✅ special cards go to hand
-    playerHand.push(activeCard);
-    addCardToHand(activeCard);
+  if (thisCard.special) {
+    playerHand.push(thisCard);
+    addCardToHand(thisCard);
   } else {
-    // ✅ normal cards go to discard
-    discardPile.push(activeCard);
+    discardPile.push(thisCard);
   }
 
   activeCard = null;
