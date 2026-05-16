@@ -935,7 +935,7 @@ function spawnCardFromData(cardData) {
   card.innerHTML = `
     <div class="close">✖</div>
     <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
-    ${cardData.img ? `Data.img}">` : ""}
+    ${cardData.img ? `<img src="${cardData.img}">` : ""}
     <div style="margin-top:6px;">${cardData.bottom}</div>
   `;
 
