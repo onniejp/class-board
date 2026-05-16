@@ -777,8 +777,8 @@ onValue(revealedRef, snap => {
   // remove existing revealed cards
   document.querySelectorAll('.revealed-card').forEach(c => c.remove());
 
-  Object.values(data).forEach(cardData => {
-    showRevealedCard(cardData);
+  Object.entries(data).forEach(([key, cardData]) => {
+    showRevealedCard(cardData, key);
   });
 });
 
@@ -980,11 +980,14 @@ function revealCard(cardData) {
   push(revealedRef, cardData);
 }
 
-function showRevealedCard(cardData) {
+function showRevealedCard(cardData, key) {
   const card = document.createElement('div');
   card.className = 'card revealed-card';
-
+  card.style.transform = `rotate(${Math.random() * 6 - 3}deg)`;
+  document.querySelectorAll('.revealed-card').forEach(c => c.remove());
+  
   card.innerHTML = `
+    <div class="close" style="top:4px; right:6px;">✖</div>
     <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
     ${cardData.img ? `<img src="${cardData.img}">` : ""}
     <div style="margin-top:6px;">${cardData.bottom}</div>
@@ -992,6 +995,11 @@ function showRevealedCard(cardData) {
 
   card.style.left = (window.innerWidth * (0.3 + Math.random() * 0.4)) + 'px';
   card.style.top  = (window.innerHeight * (0.2 + Math.random() * 0.3)) + 'px';
+
+  // ✅ REMOVE FROM DB
+  card.querySelector('.close').addEventListener('click', () => {
+    remove(ref(db, `rooms/${ROOM_ID}/revealed/${key}`));
+  });
 
   document.body.appendChild(card);
 }
