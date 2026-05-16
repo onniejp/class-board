@@ -870,6 +870,12 @@ function spawnTestCard() {
 
   makeCardDraggable(card);
 
+  
+card.querySelector('.reveal').addEventListener('click', () => {
+  revealCard(cardData);
+});
+
+
   // ❌ clicking X = return to bottom of deck (discard)
 const thisCard = cardData; // ✅ capture correct reference
 
@@ -959,6 +965,10 @@ function spawnCardFromData(cardData) {
 
   makeCardDraggable(card);
 
+  card.querySelector('.reveal').addEventListener('click', () => {
+  revealCard(cardData);
+});
+
   card.querySelector('.close').addEventListener('click', () => {
     card.remove();
   });
@@ -966,9 +976,25 @@ function spawnCardFromData(cardData) {
   document.body.appendChild(card);
 }
 
-card.querySelector('.reveal').addEventListener('click', () => {
-  revealCard(cardData);
-});
+function revealCard(cardData) {
+  push(revealedRef, cardData);
+}
+
+function showRevealedCard(cardData) {
+  const card = document.createElement('div');
+  card.className = 'card revealed-card';
+
+  card.innerHTML = `
+    <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
+    ${cardData.img ? `<img src="${cardData.img}">` : ""}
+    <div style="margin-top:6px;">${cardData.bottom}</div>
+  `;
+
+  card.style.left = (window.innerWidth * (0.3 + Math.random() * 0.4)) + 'px';
+  card.style.top  = (window.innerHeight * (0.2 + Math.random() * 0.3)) + 'px';
+
+  document.body.appendChild(card);
+}
   
     // ── DICE (MULTI, SYNCED) ────────────────────
 const diceRef = ref(db, `rooms/${ROOM_ID}/dice`);
@@ -1086,26 +1112,6 @@ shuffle(drawPile);
     showToast(`Loaded ${deckCards.length} cards`);
     updateDeckUI();
 
-function revealCard(cardData) {
-  push(revealedRef, cardData);
-}
-
-function showRevealedCard(cardData) {
-  const card = document.createElement('div');
-  card.className = 'card revealed-card';
-
-  card.innerHTML = `
-    <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
-    ${cardData.img ? `<img src="${cardData.img}">` : ""}
-    <div style="margin-top:6px;">${cardData.bottom}</div>
-  `;
-
-  // scatter slightly so they don’t stack perfectly
-  card.style.left = (window.innerWidth * (0.3 + Math.random() * 0.4)) + 'px';
-  card.style.top  = (window.innerHeight * (0.2 + Math.random() * 0.3)) + 'px';
-
-  document.body.appendChild(card);
-}
     
   } catch (e) {
     console.error(e);
