@@ -1031,9 +1031,9 @@ async function loadDeckFromSheet(url) {
       top: row[0] || "",
       bottom: row[1] || "",
       img: row[2] || "",
-      special: (row[3] || "").toLowerCase() === "true"
+      special: (row[3] || "").trim().toLowerCase() === "true"
     }));
-
+console.log("Parsed cards:", deckCards.slice(0, 5));
     // initialize draw pile (shuffle)
 drawPile = [...deckCards];
 discardPile = [];
