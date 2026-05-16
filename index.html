@@ -560,6 +560,7 @@ const DEMO_MODE = false;
 const app     = initializeApp(firebaseConfig);
 const db      = getDatabase(app);
 let roomRef, piecesRef, presenceRef, myPresenceRef;
+let revealedRef;
 
 // ─── ROOM ID from URL hash ───────────────────
 function getRoomId() {
@@ -768,6 +769,18 @@ function addPiece() {
 function startFirebase() {
   piecesRef = ref(db, `rooms/${ROOM_ID}/pieces`);
   presenceRef = ref(db, `rooms/${ROOM_ID}/presence`);
+  revealedRef = ref(db, `rooms/${ROOM_ID}/revealed`);
+
+onValue(revealedRef, snap => {
+  const data = snap.val() || {};
+
+  // remove existing revealed cards
+  document.querySelectorAll('.revealed-card').forEach(c => c.remove());
+
+  Object.values(data).forEach(cardData => {
+    showRevealedCard(cardData);
+  });
+});
 
   // Pieces
   onValue(piecesRef, snap => {
@@ -845,11 +858,12 @@ function spawnTestCard() {
   card.className = 'card';
 
   card.innerHTML = `
-    <div class="close">✖</div>
-    <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
-    ${cardData.img ? `<img src="${cardData.img}">` : ""}
-    <div style="margin-top:6px;">${cardData.bottom}</div>
-  `;
+  <div class="close">✖</div>
+  <div class="reveal" style="position:absolute; top:6px; left:8px; cursor:pointer;">👁</div>
+  <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
+  ${cardData.img ? `<img src="${cardData.img}">` : ""}
+  <div style="margin-top:6px;">${cardData.bottom}</div>
+`;
 
   card.style.left = (window.innerWidth * 0.4) + 'px';
   card.style.top  = (window.innerHeight * 0.3) + 'px';
@@ -933,11 +947,12 @@ function spawnCardFromData(cardData) {
   card.className = 'card';
 
   card.innerHTML = `
-    <div class="close">✖</div>
-    <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
-    ${cardData.img ? `<img src="${cardData.img}">` : ""}
-    <div style="margin-top:6px;">${cardData.bottom}</div>
-  `;
+  <div class="close">✖</div>
+  <div class="reveal" style="position:absolute; top:6px; left:8px; cursor:pointer;">👁</div>
+  <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
+  ${cardData.img ? `<img src="${cardData.img}">` : ""}
+  <div style="margin-top:6px;">${cardData.bottom}</div>
+`;
 
   card.style.left = (window.innerWidth * 0.4) + 'px';
   card.style.top  = (window.innerHeight * 0.3) + 'px';
@@ -951,6 +966,10 @@ function spawnCardFromData(cardData) {
   document.body.appendChild(card);
 }
 
+card.querySelector('.reveal').addEventListener('click', () => {
+  revealCard(cardData);
+});
+  
     // ── DICE (MULTI, SYNCED) ────────────────────
 const diceRef = ref(db, `rooms/${ROOM_ID}/dice`);
 const diceRow = document.getElementById('dice-row');
@@ -1067,6 +1086,27 @@ shuffle(drawPile);
     showToast(`Loaded ${deckCards.length} cards`);
     updateDeckUI();
 
+function revealCard(cardData) {
+  push(revealedRef, cardData);
+}
+
+function showRevealedCard(cardData) {
+  const card = document.createElement('div');
+  card.className = 'card revealed-card';
+
+  card.innerHTML = `
+    <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
+    ${cardData.img ? `<img src="${cardData.img}">` : ""}
+    <div style="margin-top:6px;">${cardData.bottom}</div>
+  `;
+
+  // scatter slightly so they don’t stack perfectly
+  card.style.left = (window.innerWidth * (0.3 + Math.random() * 0.4)) + 'px';
+  card.style.top  = (window.innerHeight * (0.2 + Math.random() * 0.3)) + 'px';
+
+  document.body.appendChild(card);
+}
+    
   } catch (e) {
     console.error(e);
     showToast("Failed to load deck");
