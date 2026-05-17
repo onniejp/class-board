@@ -563,6 +563,7 @@ let roomRef, piecesRef, presenceRef, myPresenceRef;
 let revealedRef;
 let deckRef;
 let activeCardRef;
+let deckNameRef;
 
 // ─── ROOM ID from URL hash ───────────────────
 function getRoomId() {
@@ -817,12 +818,21 @@ onValue(revealedRef, snap => {
 onValue(activeCardRef, snap => {
   const cardData = snap.val();
 
-  // remove existing active cards
+  // clear old cards
   document.querySelectorAll('.active-card').forEach(c => c.remove());
 
-  if (cardData) {
-    showActiveCard(cardData);
+  if (!cardData) {
+    activeCard = null; // ✅ CRITICAL FIX
+    return;
   }
+
+  showActiveCard(cardData);
+});
+  deckNameRef = ref(db, `rooms/${ROOM_ID}/deckName`);
+
+onValue(deckNameRef, snap => {
+  deckName = snap.val() || "Deck";
+  updateDeckUI();
 });
 }
 
@@ -876,7 +886,7 @@ function spawnTestCard() {
     <div class="close">✖</div>
     <div class="reveal" style="position:absolute; top:6px; left:8px; cursor:pointer;">👁</div>
     <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
-    ${cardData.img ? `${cardData.img}` : ""}
+    ${cardData.img ? `<img src="${cardData.img}">` : ""}
     <div style="margin-top:6px;">${cardData.bottom}</div>
   `;
 
@@ -1111,6 +1121,8 @@ async function loadDeckFromSheet(url) {
 
     const header = rows[0];
     deckName = header[0] || "Deck";
+
+    set(deckNameRef, deckName);
 
     deckCards = rows.slice(2).map((row, index) => ({
       id: index,
