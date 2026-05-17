@@ -561,6 +561,8 @@ const app     = initializeApp(firebaseConfig);
 const db      = getDatabase(app);
 let roomRef, piecesRef, presenceRef, myPresenceRef;
 let revealedRef;
+let deckRef;
+let activeCardRef;
 
 // ─── ROOM ID from URL hash ───────────────────
 function getRoomId() {
@@ -770,6 +772,8 @@ function startFirebase() {
   piecesRef = ref(db, `rooms/${ROOM_ID}/pieces`);
   presenceRef = ref(db, `rooms/${ROOM_ID}/presence`);
   revealedRef = ref(db, `rooms/${ROOM_ID}/revealed`);
+  deckRef = ref(db, `rooms/${ROOM_ID}/deck`);
+  activeCardRef = ref(db, `rooms/${ROOM_ID}/activeCard`);
 
 onValue(revealedRef, snap => {
   const data = snap.val() || {};
@@ -805,6 +809,21 @@ onValue(revealedRef, snap => {
     playerCount = n;
     playerCountEl.textContent = `${n} player${n !== 1 ? 's' : ''} connected`;
   });
+
+  onValue(deckRef, snap => {
+  drawPile = snap.val() || [];
+});
+
+onValue(activeCardRef, snap => {
+  const cardData = snap.val();
+
+  // remove existing active cards
+  document.querySelectorAll('.active-card').forEach(c => c.remove());
+
+  if (cardData) {
+    showActiveCard(cardData);
+  }
+});
 }
 
 startFirebase();
@@ -827,73 +846,64 @@ updateDeckUI();
 
 function spawnTestCard() {
 
-  // ✅ If a card is already active → discard it
+  // if card already active → clear it
   if (activeCard) {
-    discardPile.push(activeCard);
-    activeCard = null;
-    document.querySelectorAll('.card').forEach(c => c.remove());
+    set(activeCardRef, null);
     return;
   }
 
-  // ✅ If deck is empty
-  if (drawPile.length === 0) {
-    if (discardPile.length === 0) {
-      showToast("Deck is empty");
-      return;
-    }
-
-    // reshuffle discard into draw pile
-    drawPile = [...discardPile];
-    discardPile = [];
-    shuffle(drawPile);
-
-    showToast("Deck reshuffled");
+  if (!drawPile.length) {
+    showToast("Deck empty");
+    return;
   }
 
-  // ✅ draw top card
-  const cardData = drawPile.pop();
+  const cardData = drawPile[drawPile.length - 1];
+  const newDeck = drawPile.slice(0, -1);
+
+  // ✅ update global state
+  set(deckRef, newDeck);
+  set(activeCardRef, cardData);
+}
+
+  function showActiveCard(cardData) {
+
   activeCard = cardData;
 
   const card = document.createElement('div');
-  card.className = 'card';
+  card.className = 'card active-card';
 
   card.innerHTML = `
-  <div class="close">✖</div>
-  <div class="reveal" style="position:absolute; top:6px; left:8px; cursor:pointer;">👁</div>
-  <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
-  ${cardData.img ? `<img src="${cardData.img}">` : ""}
-  <div style="margin-top:6px;">${cardData.bottom}</div>
-`;
+    <div class="close">✖</div>
+    <div class="reveal" style="position:absolute; top:6px; left:8px; cursor:pointer;">👁</div>
+    <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
+    ${cardData.img ? `${cardData.img}` : ""}
+    <div style="margin-top:6px;">${cardData.bottom}</div>
+  `;
 
   card.style.left = (window.innerWidth * 0.4) + 'px';
   card.style.top  = (window.innerHeight * 0.3) + 'px';
 
   makeCardDraggable(card);
 
-  
-card.querySelector('.reveal').addEventListener('click', () => {
-  revealCard(cardData);
-});
+  // ✅ close = discard or hand
+  card.querySelector('.close').addEventListener('click', () => {
 
+    if (cardData.special) {
+      playerHand.push(cardData);
+      addCardToHand(cardData);
+    }
 
-  // ❌ clicking X = return to bottom of deck (discard)
-const thisCard = cardData; // ✅ capture correct reference
+    set(activeCardRef, null);
+  });
 
-card.querySelector('.close').addEventListener('click', () => {
-
-  if (thisCard.special) {
-    playerHand.push(thisCard);
-    addCardToHand(thisCard);
-  } else {
-    discardPile.push(thisCard);
-  }
-
-  activeCard = null;
-  card.remove();
-});
+  // ✅ reveal still works
+  card.querySelector('.reveal').addEventListener('click', () => {
+    revealCard(cardData);
+  });
 
   document.body.appendChild(card);
 }
+
 
   function makeCardDraggable(el) {
   let offsetX = 0;
@@ -1111,11 +1121,14 @@ async function loadDeckFromSheet(url) {
     }));
 console.log("Parsed cards:", deckCards.slice(0, 5));
     // initialize draw pile (shuffle)
-drawPile = [...deckCards];
-discardPile = [];
-activeCard = null;
+let newDeck = [...deckCards];
+shuffle(newDeck);
 
-shuffle(drawPile);
+// ✅ store deck globally
+set(deckRef, newDeck);
+
+// ✅ clear active card
+set(activeCardRef, null);
 
     showToast(`Loaded ${deckCards.length} cards`);
     updateDeckUI();
