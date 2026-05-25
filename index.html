@@ -556,8 +556,6 @@ const firebaseConfig = {
   appId:             "1:258517591017:web:5031387457578bfbf9e178",
   measurementId:     "G-DGDY442Z8B"
 };
-
-const board = document.getElementById('board');
   
 const DEMO_MODE = false;
 
@@ -843,7 +841,10 @@ onValue(activeCardRef, snap => {
 
 }
 
-startFirebase();
+
+window.addEventListener('DOMContentLoaded', () => {
+  startFirebase();
+});
 
 function updateDeckUI() {
   const deckArea = document.getElementById('deck-area');
@@ -923,7 +924,6 @@ function drawFromDeck(deckId) {
 
 
 // initialize empty deck UI
-updateDeckUI();
 
   function showActiveCard(cardData) {
 
@@ -1014,7 +1014,7 @@ function addCardToHand(cardData) {
     spawnCardFromData(cardData);
   });
 
-  // ✅ Right-click = REMOVE ONLY (no DB writes)
+  // Right click = remove only
   mini.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     mini.remove();
@@ -1023,7 +1023,7 @@ function addCardToHand(cardData) {
 
   hand.appendChild(mini);
 }
-  );
+  
 
 
   hand.appendChild(mini);
