@@ -852,7 +852,7 @@ function updateDeckUI() {
     const deck = document.createElement('div');
     deck.className = 'deck';
 
-    eck.title = deckId;
+    deck.title = deckId;
 
     const name = deckNames[deckId] || "Deck";
     deck.textContent = `${name} (${pile.length})`;
@@ -1155,6 +1155,8 @@ showToast(`Deck "${deckName}" added`);
   console.error(e);
   showToast("Failed to load deck");
 }
+}
+
 
   
 // ─────────────────────────────────────────────
