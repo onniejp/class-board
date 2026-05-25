@@ -861,11 +861,34 @@ function updateDeckUI() {
 
     deckArea.appendChild(deck);
   });
+
+  const reshuffle = document.createElement('div');
+reshuffle.textContent = "🔄";
+reshuffle.style.position = "absolute";
+reshuffle.style.bottom = "4px";
+reshuffle.style.right = "6px";
+reshuffle.style.cursor = "pointer";
+reshuffle.style.fontSize = "12px";
+
+reshuffle.addEventListener('click', (e) => {
+  e.stopPropagation();
+
+  const pile = decks[deckId] || [];
+  const newDeck = [...pile];
+  shuffle(newDeck);
+
+  set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
+
+  showToast("Deck shuffled");
+});
+
+deck.appendChild(reshuffle);
+  
 }
 
 function drawFromDeck(deckId) {
 
-  const pile = decks[deckId] || [];
+  const pile = Array.isArray(decks[deckId]) ? decks[deckId] : [];
 
   if (!pile.length) {
     showToast("Deck empty");
@@ -879,7 +902,9 @@ function drawFromDeck(deckId) {
   set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
 
   // set active card
-  set(activeCardRef, { ...cardData, deckId });
+  const cardWithSource = { ...cardData, deckId };
+
+  set(activeCardRef, cardWithSource);
 }
 
 
@@ -972,8 +997,27 @@ function addCardToHand(cardData) {
 
   // ✅ CLICK → reopen full card
   mini.addEventListener('click', () => {
-    spawnCardFromData(cardData);
-  });
+  spawnCardFromData(cardData);
+});
+
+// ✅ RIGHT CLICK → return to deck
+mini.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+
+  if (!cardData.deckId) return;
+
+  const deck = decks[cardData.deckId] || [];
+
+  // ✅ add to bottom
+  const newDeck = [cardData, ...deck];
+
+  set(ref(db, `rooms/${ROOM_ID}/decks/${cardData.deckId}`), newDeck);
+
+  mini.remove();
+
+  showToast("Returned to deck");
+});
+
 
   hand.appendChild(mini);
 }
@@ -1144,7 +1188,7 @@ console.log("Parsed cards:", deckCards.slice(0, 5));
 let newDeck = [...deckCards];
 shuffle(newDeck);
 
-const deckId = "deck_" + Date.now();
+const deckId = deckName.replace(/\s+/g, "_").toLowerCase();
 
 await set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
 await set(ref(db, `rooms/${ROOM_ID}/deckNames/${deckId}`), deckName);
