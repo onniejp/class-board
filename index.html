@@ -400,12 +400,14 @@
   :root { --piece-size: 46px; }
 }
 
-  #deck-area {
-  outline: 2px solid red;
+#deck-area {
   position: fixed;
   bottom: 80px;
   left: 16px;
   z-index: 450;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
   
   #local-die {
@@ -561,7 +563,6 @@ const app     = initializeApp(firebaseConfig);
 const db      = getDatabase(app);
 let roomRef, piecesRef, presenceRef, myPresenceRef;
 let revealedRef;
-let deckRef;
 let activeCardRef;
 let deckNameRef;
 let decksRef;
@@ -600,6 +601,7 @@ let decks = {}; // { deckId: [cards] }
 let discardPile = [];
 let activeCard = null;
 let playerHand = []
+let deckNames = {};
 
 // ─── Share URL ───────────────────────────────
 shareUrl.textContent = location.href;
@@ -775,12 +777,9 @@ function startFirebase() {
   piecesRef = ref(db, `rooms/${ROOM_ID}/pieces`);
   presenceRef = ref(db, `rooms/${ROOM_ID}/presence`);
   revealedRef = ref(db, `rooms/${ROOM_ID}/revealed`);
-  deckRef = ref(db, `rooms/${ROOM_ID}/deck`);
   activeCardRef = ref(db, `rooms/${ROOM_ID}/activeCard`);
   decksRef = ref(db, `rooms/${ROOM_ID}/decks`);
   deckNamesRef = ref(db, `rooms/${ROOM_ID}/deckNames`);
-
-let deckNames = {};
 
 onValue(deckNamesRef, snap => {
   deckNames = snap.val() || {};
@@ -826,10 +825,6 @@ onValue(revealedRef, snap => {
     playerCount = n;
     playerCountEl.textContent = `${n} player${n !== 1 ? 's' : ''} connected`;
   });
-
-  onValue(deckRef, snap => {
-  drawPile = snap.val() || [];
-});
 
 onValue(activeCardRef, snap => {
   const cardData = snap.val();
@@ -894,27 +889,6 @@ function drawFromDeck(deckId) {
 
 // initialize empty deck UI
 updateDeckUI();
-
-function spawnTestCard() {
-
-  // if card already active → clear it
-  if (activeCard) {
-    set(activeCardRef, null);
-    return;
-  }
-
-  if (!drawPile.length) {
-    showToast("Deck empty");
-    return;
-  }
-
-  const cardData = drawPile[drawPile.length - 1];
-  const newDeck = drawPile.slice(0, -1);
-
-  // ✅ update global state
-  set(deckRef, newDeck);
-  set(activeCardRef, cardData);
-}
 
   function showActiveCard(cardData) {
 
@@ -1045,7 +1019,6 @@ function showRevealedCard(cardData, key) {
   const card = document.createElement('div');
   card.className = 'card revealed-card';
   card.style.transform = `rotate(${Math.random() * 6 - 3}deg)`;
-  document.querySelectorAll('.revealed-card').forEach(c => c.remove());
   
   card.innerHTML = `
     <div class="close" style="top:4px; right:6px;">✖</div>
@@ -1177,14 +1150,12 @@ console.log("Parsed cards:", deckCards.slice(0, 5));
 let newDeck = [...deckCards];
 shuffle(newDeck);
 
-// generate unique IDupdateDeckUI()
 const deckId = "deck_" + Date.now();
 
-// save deck
-set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
+await set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
+await set(ref(db, `rooms/${ROOM_ID}/deckNames/${deckId}`), deckName);
 
-// save name
-set(ref(db, `rooms/${ROOM_ID}/deckNames/${deckId}`), deckName);
+showToast(`Deck "${deckName}" added`);
 }
   
 // ─────────────────────────────────────────────
