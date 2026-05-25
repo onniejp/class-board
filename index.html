@@ -847,6 +847,26 @@ function updateDeckUI() {
   const deckArea = document.getElementById('deck-area');
   deckArea.innerHTML = '';
 
+  const closeBtn = document.createElement('div');
+closeBtn.textContent = "✖";
+closeBtn.style.position = "absolute";
+closeBtn.style.top = "4px";
+closeBtn.style.right = "6px";
+closeBtn.style.cursor = "pointer";
+closeBtn.style.fontSize = "12px";
+
+closeBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+
+  remove(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`));
+  remove(ref(db, `rooms/${ROOM_ID}/deckNames/${deckId}`));
+
+  showToast("Deck removed");
+});
+
+deck.appendChild(closeBtn);
+
+  
   Object.entries(decks).forEach(([deckId, pile]) => {
 
     const deck = document.createElement('div');
@@ -892,16 +912,14 @@ function drawFromDeck(deckId) {
 
   const pile = Array.isArray(decks[deckId]) ? decks[deckId] : [];
 
-  if (!pile.length) {
-    showToast("Deck empty");
-    return;
-  }
+  
 
-  const cardData = pile[pile.length - 1];
-  const newDeck = pile.slice(0, -1);
+  
+  const cardData = pile[0];              // take from top
+  const newDeck = [...pile.slice(1), cardData]; // move to bottom
 
-  // update ONLY that deck
   set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
+
 
   // set active card
   const cardWithSource = { ...cardData, deckId };
@@ -1010,8 +1028,10 @@ mini.addEventListener('contextmenu', (e) => {
 
   const deck = decks[cardData.deckId] || [];
 
-  // ✅ add to bottom
-  const newDeck = [...deck, cardData];
+  
+  mini.remove();
+  showToast("Returned");
+
 
   set(ref(db, `rooms/${ROOM_ID}/decks/${cardData.deckId}`), newDeck);
 
@@ -1196,6 +1216,13 @@ await set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
 await set(ref(db, `rooms/${ROOM_ID}/deckNames/${deckId}`), deckName);
 
 showToast(`Deck "${deckName}" added`);
+
+
+playerHand = [];
+
+const hand = document.getElementById('hand');
+hand.innerHTML = '<div style="font-size:10px; margin-bottom:6px; color:#ccc;">Your Hand</div>';
+
 
 } catch (e) {
   console.error(e);
