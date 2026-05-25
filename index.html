@@ -844,6 +844,7 @@ onValue(activeCardRef, snap => {
 
 window.addEventListener('DOMContentLoaded', () => {
   startFirebase();
+  updateDeckUI();
 });
 
 function updateDeckUI() {
@@ -1023,11 +1024,7 @@ function addCardToHand(cardData) {
 
   hand.appendChild(mini);
 }
-  
 
-
-  hand.appendChild(mini);
-}
 
 function spawnCardFromData(cardData) {
 
