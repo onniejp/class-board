@@ -846,7 +846,7 @@ startFirebase();
 function updateDeckUI() {
   const deckArea = document.getElementById('deck-area');
   deckArea.innerHTML = '';
-  
+
   Object.entries(decks).forEach(([deckId, pile]) => {
 
     const deck = document.createElement('div');
@@ -854,37 +854,39 @@ function updateDeckUI() {
 
     deck.title = deckId;
 
+    const safePile = Array.isArray(pile) ? pile : [];
+
     const name = deckNames[deckId] || "Deck";
-    deck.textContent = `${name} (${pile.length})`;
+    deck.textContent = `${name} (${safePile.length})`;
 
     deck.addEventListener('click', () => drawFromDeck(deckId));
 
+    // ✅ reshuffle button INSIDE
+    const reshuffle = document.createElement('div');
+    reshuffle.textContent = "🔄";
+    reshuffle.style.position = "absolute";
+    reshuffle.style.bottom = "4px";
+    reshuffle.style.right = "6px";
+    reshuffle.style.cursor = "pointer";
+    reshuffle.style.fontSize = "12px";
+
+    reshuffle.addEventListener('click', (e) => {
+      e.stopPropagation();
+
+      const newDeck = [...safePile];
+      shuffle(newDeck);
+
+      set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
+
+      showToast("Deck shuffled");
+    });
+
+    deck.appendChild(reshuffle);
+
     deckArea.appendChild(deck);
   });
-
-  const reshuffle = document.createElement('div');
-reshuffle.textContent = "🔄";
-reshuffle.style.position = "absolute";
-reshuffle.style.bottom = "4px";
-reshuffle.style.right = "6px";
-reshuffle.style.cursor = "pointer";
-reshuffle.style.fontSize = "12px";
-
-reshuffle.addEventListener('click', (e) => {
-  e.stopPropagation();
-
-  const pile = decks[deckId] || [];
-  const newDeck = [...pile];
-  shuffle(newDeck);
-
-  set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
-
-  showToast("Deck shuffled");
-});
-
-deck.appendChild(reshuffle);
-  
 }
+
 
 function drawFromDeck(deckId) {
 
@@ -1009,7 +1011,7 @@ mini.addEventListener('contextmenu', (e) => {
   const deck = decks[cardData.deckId] || [];
 
   // ✅ add to bottom
-  const newDeck = [cardData, ...deck];
+  const newDeck = [...deck, cardData];
 
   set(ref(db, `rooms/${ROOM_ID}/decks/${cardData.deckId}`), newDeck);
 
