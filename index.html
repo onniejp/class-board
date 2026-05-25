@@ -557,6 +557,8 @@ const firebaseConfig = {
   measurementId:     "G-DGDY442Z8B"
 };
 
+const board = document.getElementById('board');
+  
 const DEMO_MODE = false;
 
 const app     = initializeApp(firebaseConfig);
@@ -847,32 +849,10 @@ function updateDeckUI() {
   const deckArea = document.getElementById('deck-area');
   deckArea.innerHTML = '';
 
-  const closeBtn = document.createElement('div');
-closeBtn.textContent = "✖";
-closeBtn.style.position = "absolute";
-closeBtn.style.top = "4px";
-closeBtn.style.right = "6px";
-closeBtn.style.cursor = "pointer";
-closeBtn.style.fontSize = "12px";
-
-closeBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-
-  remove(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`));
-  remove(ref(db, `rooms/${ROOM_ID}/deckNames/${deckId}`));
-
-  showToast("Deck removed");
-});
-
-deck.appendChild(closeBtn);
-
-  
   Object.entries(decks).forEach(([deckId, pile]) => {
 
     const deck = document.createElement('div');
     deck.className = 'deck';
-
-    deck.title = deckId;
 
     const safePile = Array.isArray(pile) ? pile : [];
 
@@ -881,7 +861,27 @@ deck.appendChild(closeBtn);
 
     deck.addEventListener('click', () => drawFromDeck(deckId));
 
-    // ✅ reshuffle button INSIDE
+    // ✅ CLOSE BUTTON (FIXED LOCATION)
+    const closeBtn = document.createElement('div');
+    closeBtn.textContent = "✖";
+    closeBtn.style.position = "absolute";
+    closeBtn.style.top = "4px";
+    closeBtn.style.right = "6px";
+    closeBtn.style.cursor = "pointer";
+    closeBtn.style.fontSize = "12px";
+
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+
+      remove(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`));
+      remove(ref(db, `rooms/${ROOM_ID}/deckNames/${deckId}`));
+
+      showToast("Deck removed");
+    });
+
+    deck.appendChild(closeBtn);
+
+    // ✅ RESHUFFLE BUTTON (SAFE)
     const reshuffle = document.createElement('div');
     reshuffle.textContent = "🔄";
     reshuffle.style.position = "absolute";
@@ -909,22 +909,16 @@ deck.appendChild(closeBtn);
 
 
 function drawFromDeck(deckId) {
-
   const pile = Array.isArray(decks[deckId]) ? decks[deckId] : [];
 
-  
+  if (pile.length === 0) return; // safety
 
-  
-  const cardData = pile[0];              // take from top
-  const newDeck = [...pile.slice(1), cardData]; // move to bottom
+  const cardData = pile[0]; // take top
+  const newDeck = [...pile.slice(1), cardData]; // rotate
 
   set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
 
-
-  // set active card
-  const cardWithSource = { ...cardData, deckId };
-
-  set(activeCardRef, cardWithSource);
+  set(activeCardRef, { ...cardData, deckId });
 }
 
 
@@ -1015,30 +1009,21 @@ function addCardToHand(cardData) {
 
   mini.textContent = cardData.top;
 
-  // ✅ CLICK → reopen full card
+  // Click = reopen
   mini.addEventListener('click', () => {
-  spawnCardFromData(cardData);
-});
+    spawnCardFromData(cardData);
+  });
 
-// ✅ RIGHT CLICK → return to deck
-mini.addEventListener('contextmenu', (e) => {
-  e.preventDefault();
+  // ✅ Right-click = REMOVE ONLY (no DB writes)
+  mini.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    mini.remove();
+    showToast("Returned");
+  });
 
-  if (!cardData.deckId) return;
-
-  const deck = decks[cardData.deckId] || [];
-
-  
-  mini.remove();
-  showToast("Returned");
-
-
-  set(ref(db, `rooms/${ROOM_ID}/decks/${cardData.deckId}`), newDeck);
-
-  mini.remove();
-
-  showToast("Returned to deck");
-});
+  hand.appendChild(mini);
+}
+  );
 
 
   hand.appendChild(mini);
@@ -1221,7 +1206,8 @@ showToast(`Deck "${deckName}" added`);
 playerHand = [];
 
 const hand = document.getElementById('hand');
-hand.innerHTML = '<div style="font-size:10px; margin-bottom:6px; color:#ccc;">Your Hand</div>';
+hand.innerHTML =
+  '<div style="font-size:10px; margin-bottom:6px; color:#ccc;">Your Hand</div>';
 
 
 } catch (e) {
