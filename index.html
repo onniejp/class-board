@@ -564,6 +564,8 @@ let revealedRef;
 let deckRef;
 let activeCardRef;
 let deckNameRef;
+let decksRef;
+let deckNamesRef;
 
 // ─── ROOM ID from URL hash ───────────────────
 function getRoomId() {
@@ -594,7 +596,7 @@ let isPanelOpen   = false;
 let localDragging = null;  // id being dragged locally
 let deckCards = [];
 let deckName = "Deck";
-let drawPile = [];
+let decks = {}; // { deckId: [cards] }
 let discardPile = [];
 let activeCard = null;
 let playerHand = []
@@ -775,6 +777,20 @@ function startFirebase() {
   revealedRef = ref(db, `rooms/${ROOM_ID}/revealed`);
   deckRef = ref(db, `rooms/${ROOM_ID}/deck`);
   activeCardRef = ref(db, `rooms/${ROOM_ID}/activeCard`);
+  decksRef = ref(db, `rooms/${ROOM_ID}/decks`);
+  deckNamesRef = ref(db, `rooms/${ROOM_ID}/deckNames`);
+
+let deckNames = {};
+
+onValue(deckNamesRef, snap => {
+  deckNames = snap.val() || {};
+  updateDeckUI();
+});
+
+onValue(decksRef, snap => {
+  decks = snap.val() || {};
+  updateDeckUI();
+});
 
 onValue(revealedRef, snap => {
   const data = snap.val() || {};
@@ -842,14 +858,39 @@ function updateDeckUI() {
   const deckArea = document.getElementById('deck-area');
   deckArea.innerHTML = '';
 
-  const deck = document.createElement('div');
-  deck.className = 'deck';
-  deck.textContent = deckName;
+  Object.entries(decks).forEach(([deckId, pile]) => {
 
-  deck.addEventListener('click', spawnTestCard);
+    const deck = document.createElement('div');
+    deck.className = 'deck';
 
-  deckArea.appendChild(deck);
+    const name = deckNames[deckId] || "Deck";
+    deck.textContent = `${name} (${pile.length})`;
+
+    deck.addEventListener('click', () => drawFromDeck(deckId));
+
+    deckArea.appendChild(deck);
+  });
 }
+
+function drawFromDeck(deckId) {
+
+  const pile = decks[deckId] || [];
+
+  if (!pile.length) {
+    showToast("Deck empty");
+    return;
+  }
+
+  const cardData = pile[pile.length - 1];
+  const newDeck = pile.slice(0, -1);
+
+  // update ONLY that deck
+  set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
+
+  // set active card
+  set(activeCardRef, { ...cardData, deckId });
+}
+
 
 // initialize empty deck UI
 updateDeckUI();
@@ -1136,20 +1177,14 @@ console.log("Parsed cards:", deckCards.slice(0, 5));
 let newDeck = [...deckCards];
 shuffle(newDeck);
 
-// ✅ store deck globally
-set(deckRef, newDeck);
+// generate unique IDupdateDeckUI()
+const deckId = "deck_" + Date.now();
 
-// ✅ clear active card
-set(activeCardRef, null);
+// save deck
+set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
 
-    showToast(`Loaded ${deckCards.length} cards`);
-    updateDeckUI();
-
-    
-  } catch (e) {
-    console.error(e);
-    showToast("Failed to load deck");
-  }
+// save name
+set(ref(db, `rooms/${ROOM_ID}/deckNames/${deckId}`), deckName);
 }
   
 // ─────────────────────────────────────────────
