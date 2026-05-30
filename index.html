@@ -564,7 +564,6 @@ const db      = getDatabase(app);
 let roomRef, piecesRef, presenceRef, myPresenceRef;
 let revealedRef;
 let activeCardRef;
-let deckNameRef;
 let decksRef;
 let deckNamesRef;
 
@@ -839,12 +838,7 @@ onValue(activeCardRef, snap => {
 
   showActiveCard(cardData);
 });
-  deckNameRef = ref(db, `rooms/${ROOM_ID}/deckName`);
 
-onValue(deckNameRef, snap => {
-  deckName = snap.val() || "Deck";
-  updateDeckUI();
-});
 }
 
 startFirebase();
@@ -853,6 +847,8 @@ function updateDeckUI() {
   const deckArea = document.getElementById('deck-area');
   deckArea.innerHTML = '';
 
+  deck.title = deckId
+  
   Object.entries(decks).forEach(([deckId, pile]) => {
 
     const deck = document.createElement('div');
@@ -1156,7 +1152,12 @@ await set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
 await set(ref(db, `rooms/${ROOM_ID}/deckNames/${deckId}`), deckName);
 
 showToast(`Deck "${deckName}" added`);
+
+} catch (e) {
+  console.error(e);
+  showToast("Failed to load deck");
 }
+
   
 // ─────────────────────────────────────────────
 //  BOARD IMAGE — synced via DB URL (hosted on GitHub)
