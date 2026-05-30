@@ -564,6 +564,8 @@ let revealedRef;
 let deckRef;
 let activeCardRef;
 let deckNameRef;
+let baseDeckRef;
+let handsRef;
 
 // ─── ROOM ID from URL hash ───────────────────
 function getRoomId() {
@@ -576,6 +578,7 @@ function getRoomId() {
 }
 
 const ROOM_ID = getRoomId();
+  const PLAYER_ID = Math.random().toString(36).slice(2, 8);
 let playerCount = 1;
 
 // ─── DOM refs ────────────────────────────────
@@ -775,6 +778,9 @@ function startFirebase() {
   revealedRef = ref(db, `rooms/${ROOM_ID}/revealed`);
   deckRef = ref(db, `rooms/${ROOM_ID}/deck`);
   activeCardRef = ref(db, `rooms/${ROOM_ID}/activeCard`);
+  baseDeckRef = ref(db, `rooms/${ROOM_ID}/baseDeck`);
+  handsRef = ref(db, `rooms/${ROOM_ID}/hands`);
+
 
 onValue(revealedRef, snap => {
   const data = snap.val() || {};
@@ -834,6 +840,12 @@ onValue(deckNameRef, snap => {
   deckName = snap.val() || "Deck";
   updateDeckUI();
 });
+
+  let allHands = {};
+
+onValue(handsRef, snap => {
+  allHands = snap.val() || {};
+});
 }
 
 startFirebase();
@@ -862,10 +874,26 @@ function spawnTestCard() {
     return;
   }
 
-  if (!drawPile.length) {
-    showToast("Deck empty");
-    return;
-  }
+if (!drawPile.length) {
+
+  onValue(baseDeckRef, snap => {
+    const full = snap.val() || [];
+
+    // collect all cards in all hands
+    const held = Object.values(allHands)
+      .flatMap(hand => Object.values(hand || {}));
+
+    // rebuild deck excluding held cards
+    const rebuilt = full.filter(c =>
+      !held.some(h => h.id === c.id)
+    );
+
+    set(deckRef, rebuilt);
+    showToast("Deck recycled");
+  }, { onlyOnce: true });
+
+  return;
+}
 
   const cardData = drawPile[drawPile.length - 1];
   const newDeck = drawPile.slice(0, -1);
@@ -898,10 +926,12 @@ function spawnTestCard() {
   // ✅ close = discard or hand
   card.querySelector('.close').addEventListener('click', () => {
 
-    if (cardData.special) {
-      playerHand.push(cardData);
-      addCardToHand(cardData);
-    }
+if (cardData.special) {
+
+  push(ref(db, `rooms/${ROOM_ID}/hands/${PLAYER_ID}`), cardData);
+
+  addCardToHand(cardData);
+}
 
     set(activeCardRef, null);
   });
@@ -1137,7 +1167,10 @@ let newDeck = [...deckCards];
 shuffle(newDeck);
 
 // ✅ store deck globally
+
 set(deckRef, newDeck);
+set(baseDeckRef, newDeck);
+
 
 // ✅ clear active card
 set(activeCardRef, null);
