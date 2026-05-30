@@ -883,7 +883,6 @@ if (!drawPile.length) {
     const held = Object.values(allHands)
       .flatMap(hand => Object.values(hand || {}));
 
-    console.log("Rebuilding deck", drawPile.length, allHands);
 
     // rebuild deck excluding held cards
     const rebuilt = full.filter(c =>
