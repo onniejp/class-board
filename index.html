@@ -1,61 +1,62 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Board Game Table</title>
+<title>Board Table</title>
 
 <style>
-body { margin:0; font-family:sans-serif; background:#222; color:white; }
+body { margin:0; background:#2b2b2b; color:white; font-family:sans-serif; }
 
-/* Decks */
+/* Deck UI */
 #deck-area {
   position: fixed;
   bottom: 80px;
-  left: 16px;
+  left: 20px;
   display: flex;
-  gap: 10px;
+  gap: 12px;
 }
 
 .deck {
   width: 90px;
   height: 130px;
-  background:#444;
+  background: #444;
   display:flex;
-  align-items:center;
   justify-content:center;
+  align-items:center;
+  text-align:center;
   position:relative;
   cursor:pointer;
-  font-size:12px;
+  border-radius:8px;
 }
 
-/* Cards */
+/* Card */
 .card {
-  position:fixed;
-  background:white;
-  color:black;
-  padding:10px;
-  border-radius:8px;
-  top:40%;
-  left:40%;
-  width:200px;
+  position: fixed;
+  width: 220px;
+  background: white;
+  color: black;
+  padding: 10px;
+  border-radius: 10px;
+  top: 30%;
+  left: 40%;
 }
 
 .close {
   position:absolute;
-  top:4px;
-  right:6px;
+  top:5px;
+  right:8px;
   cursor:pointer;
 }
 
 /* Hand */
 #hand {
-  position:fixed;
-  right:10px;
-  bottom:100px;
+  position: fixed;
+  right: 20px;
+  bottom: 120px;
+  width: 200px;
   background:#111;
   padding:10px;
-  width:200px;
+  border-radius:8px;
 }
 </style>
 </head>
@@ -65,175 +66,159 @@ body { margin:0; font-family:sans-serif; background:#222; color:white; }
 <div id="deck-area"></div>
 
 <div id="hand">
-  <div style="font-size:10px; margin-bottom:6px;">Your Hand</div>
+  <div style="font-size:10px">Your Hand</div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-import {
-  getDatabase, ref, set, onValue, remove
-} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
 
 const app = initializeApp({
   databaseURL: "https://onnie-s-board-game-default-rtdb.firebaseio.com"
 });
 
 const db = getDatabase(app);
-const ROOM_ID = "main";
+const ROOM = "main";
 
-const decksRef = ref(db, `rooms/${ROOM_ID}/decks`);
-const deckNamesRef = ref(db, `rooms/${ROOM_ID}/deckNames`);
-const activeCardRef = ref(db, `rooms/${ROOM_ID}/activeCard`);
+const decksRef = ref(db, `rooms/${ROOM}/decks`);
+const namesRef = ref(db, `rooms/${ROOM}/deckNames`);
+const activeRef = ref(db, `rooms/${ROOM}/activeCard`);
 
 let decks = {};
-let deckNames = {};
+let names = {};
 
-/* ─────────── Firebase listeners ─────────── */
+/* ---------- Firebase ---------- */
 
 onValue(decksRef, s => {
   decks = s.val() || {};
-  updateDeckUI();
+  drawDecks();
 });
 
-onValue(deckNamesRef, s => {
-  deckNames = s.val() || {};
-  updateDeckUI();
+onValue(namesRef, s => {
+  names = s.val() || {};
+  drawDecks();
 });
 
-onValue(activeCardRef, s => {
+onValue(activeRef, s => {
   document.querySelectorAll('.card').forEach(c => c.remove());
-  const data = s.val();
-  if (!data) return;
-  showCard(data);
+  const c = s.val();
+  if (c) showCard(c);
 });
 
-/* ─────────── Deck UI ─────────── */
+/* ---------- Deck display ---------- */
 
-function updateDeckUI() {
-  const area = document.getElementById('deck-area');
-  area.innerHTML = '';
+function drawDecks() {
+  const area = document.getElementById("deck-area");
+  area.innerHTML = "";
 
-  Object.entries(decks).forEach(([deckId, pile]) => {
+  for (let id in decks) {
+    const pile = Array.isArray(decks[id]) ? decks[id] : [];
 
-    const safePile = Array.isArray(pile) ? pile : [];
+    const d = document.createElement("div");
+    d.className = "deck";
+    d.textContent = (names[id] || "Deck") + " (" + pile.length + ")";
 
-    const deck = document.createElement('div');
-    deck.className = 'deck';
-    deck.textContent = `${deckNames[deckId] || "Deck"} (${safePile.length})`;
+    d.onclick = () => drawCard(id);
 
-    deck.onclick = () => draw(deckId);
-
-    // close button
-    const close = document.createElement('div');
-    close.className = 'close';
-    close.textContent = "✖";
-    close.onclick = (e) => {
+    // remove
+    const x = document.createElement("div");
+    x.textContent = "✖";
+    x.className = "close";
+    x.onclick = (e) => {
       e.stopPropagation();
-      remove(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`));
-      remove(ref(db, `rooms/${ROOM_ID}/deckNames/${deckId}`));
+      remove(ref(db, `rooms/${ROOM}/decks/${id}`));
+      remove(ref(db, `rooms/${ROOM}/deckNames/${id}`));
     };
 
-    // shuffle button
-    const shuffleBtn = document.createElement('div');
-    shuffleBtn.textContent = "🔄";
-    shuffleBtn.style.position = "absolute";
-    shuffleBtn.style.bottom = "4px";
-    shuffleBtn.style.right = "6px";
-
-    shuffleBtn.onclick = (e) => {
-      e.stopPropagation();
-      const arr = [...safePile];
-      shuffle(arr);
-      set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), arr);
-    };
-
-    deck.appendChild(close);
-    deck.appendChild(shuffleBtn);
-
-    area.appendChild(deck);
-  });
+    d.appendChild(x);
+    area.appendChild(d);
+  }
 }
 
-/* ─────────── DRAW (correct loop logic) ─────────── */
+/* ---------- draw (loop mode) ---------- */
 
-function draw(deckId) {
-  const pile = decks[deckId];
+function drawCard(id) {
+  const pile = decks[id];
   if (!pile || !pile.length) return;
 
-  const card = pile[0];                 // take top
-  const rotated = [...pile.slice(1), card]; // rotate
+  const top = pile[0];
+  const rotated = [...pile.slice(1), top];
 
-  set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), rotated);
-  set(activeCardRef, { ...card, deckId });
+  set(ref(db, `rooms/${ROOM}/decks/${id}`), rotated);
+  set(activeRef, { ...top, deckId:id });
 }
 
-/* ─────────── CARD DISPLAY ─────────── */
+/* ---------- show card ---------- */
 
-function showCard(card) {
-  const el = document.createElement('div');
+function showCard(c) {
+  const el = document.createElement("div");
   el.className = "card";
 
   el.innerHTML = `
     <div class="close">✖</div>
-    <div><b>${card.top}</b></div>
-    <div>${card.bottom}</div>
+    <b>${c.top}</b><br>
+    ${c.bottom}
   `;
 
-  el.querySelector('.close').onclick = () => {
-    if (card.special) {
-      addCardToHand(card);  // ✅ visual copy ONLY
+  el.querySelector(".close").onclick = () => {
+
+    // ✅ FIXED — NO playerHand.push()
+    if (c.special) {
+      handAdd(c);
     }
-    set(activeCardRef, null);
+
+    set(activeRef, null);
   };
 
   document.body.appendChild(el);
 }
 
-/* ─────────── HAND (SAFE VERSION) ─────────── */
+/* ---------- hand ---------- */
 
-function addCardToHand(card) {
-  const hand = document.getElementById('hand');
+function handAdd(c) {
+  const hand = document.getElementById("hand");
 
-  const mini = document.createElement('div');
-  mini.textContent = card.top;
-  mini.style.background="#fff";
-  mini.style.color="#000";
-  mini.style.marginBottom="6px";
-  mini.style.cursor="pointer";
+  const m = document.createElement("div");
+  m.textContent = c.top;
+  m.style.background = "#fff";
+  m.style.color = "#000";
+  m.style.margin = "4px 0";
+  m.style.cursor = "pointer";
 
-  // reopen card
-  mini.onclick = () => showCard(card);
+  m.onclick = () => showCard(c);
 
-  // remove from hand (no DB interaction)
-  mini.oncontextmenu = (e) => {
+  m.oncontextmenu = (e) => {
     e.preventDefault();
-    mini.remove();
+    m.remove();
   };
 
-  hand.appendChild(mini);
+  hand.appendChild(m);
 }
 
-/* ─────────── UTIL ─────────── */
+/* ---------- demo loader ---------- */
 
-function shuffle(a) {
-  for (let i=a.length-1;i>0;i--) {
-    const j=Math.floor(Math.random()* (i+1));
-    [a[i],a[j]]=[a[j],a[i]];
-  }
-}
-
-/* ─────────── TEST DECK ─────────── */
-
-function addDemoDeck() {
-  const cards = [
-    { top:"Card A", bottom:"Effect A" },
-    { top:"Card B", bottom:"Effect B" },
-    { top:"Card C", bottom:"Effect C", special:true }
+function seed() {
+  const d = [
+    { top:"Card A", bottom:"Alpha" },
+    { top:"Card B", bottom:"Beta" },
+    { top:"Card C", bottom:"Gamma", special:true }
   ];
 
-  shuffle(cards);
+  set(ref(db, `rooms/${ROOM}/decks/test`), d);
+  set(ref(db, `rooms/${ROOM}/deckNames/test`), "Test Deck");
 
-  set(ref(db, `rooms/${ROOM_ID}/decks/demo`), cards);
-  set(ref(db, `rooms/${ROOM_ID}/deckNames/demo`), "Demo Deck");
+  document.getElementById("hand").innerHTML =
+    '<div style="font-size:10px">Your Hand</div>';
+}
 
-  document.getElementById('hand').innerHTML =
+const btn = document.createElement("button");
+btn.textContent = "Load Deck";
+btn.style.position="fixed";
+btn.style.top="10px";
+btn.style.left="10px";
+btn.onclick = seed;
+document.body.appendChild(btn);
+
+</script>
+</body>
+</html>
