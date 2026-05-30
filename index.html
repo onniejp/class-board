@@ -601,6 +601,7 @@ let drawPile = [];
 let discardPile = [];
 let activeCard = null;
 let playerHand = []
+let allHands = {};
 
 // ─── Share URL ───────────────────────────────
 shareUrl.textContent = location.href;
@@ -841,7 +842,6 @@ onValue(deckNameRef, snap => {
   updateDeckUI();
 });
 
-  let allHands = {};
 
 onValue(handsRef, snap => {
   allHands = snap.val() || {};
@@ -882,6 +882,8 @@ if (!drawPile.length) {
     // collect all cards in all hands
     const held = Object.values(allHands)
       .flatMap(hand => Object.values(hand || {}));
+
+    console.log("Rebuilding deck", drawPile.length, allHands);
 
     // rebuild deck excluding held cards
     const rebuilt = full.filter(c =>
