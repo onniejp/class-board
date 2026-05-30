@@ -400,14 +400,12 @@
   :root { --piece-size: 46px; }
 }
 
-#deck-area {
+  #deck-area {
+  outline: 2px solid red;
   position: fixed;
   bottom: 80px;
   left: 16px;
   z-index: 450;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
 }
   
   #local-die {
@@ -563,9 +561,9 @@ const app     = initializeApp(firebaseConfig);
 const db      = getDatabase(app);
 let roomRef, piecesRef, presenceRef, myPresenceRef;
 let revealedRef;
+let deckRef;
 let activeCardRef;
-let decksRef;
-let deckNamesRef;
+let deckNameRef;
 
 // ─── ROOM ID from URL hash ───────────────────
 function getRoomId() {
@@ -596,11 +594,10 @@ let isPanelOpen   = false;
 let localDragging = null;  // id being dragged locally
 let deckCards = [];
 let deckName = "Deck";
-let decks = {}; // { deckId: [cards] }
+let drawPile = [];
 let discardPile = [];
 let activeCard = null;
 let playerHand = []
-let deckNames = {};
 
 // ─── Share URL ───────────────────────────────
 shareUrl.textContent = location.href;
@@ -776,19 +773,8 @@ function startFirebase() {
   piecesRef = ref(db, `rooms/${ROOM_ID}/pieces`);
   presenceRef = ref(db, `rooms/${ROOM_ID}/presence`);
   revealedRef = ref(db, `rooms/${ROOM_ID}/revealed`);
+  deckRef = ref(db, `rooms/${ROOM_ID}/deck`);
   activeCardRef = ref(db, `rooms/${ROOM_ID}/activeCard`);
-  decksRef = ref(db, `rooms/${ROOM_ID}/decks`);
-  deckNamesRef = ref(db, `rooms/${ROOM_ID}/deckNames`);
-
-onValue(deckNamesRef, snap => {
-  deckNames = snap.val() || {};
-  updateDeckUI();
-});
-
-onValue(decksRef, snap => {
-  decks = snap.val() || {};
-  updateDeckUI();
-});
 
 onValue(revealedRef, snap => {
   const data = snap.val() || {};
@@ -825,6 +811,10 @@ onValue(revealedRef, snap => {
     playerCountEl.textContent = `${n} player${n !== 1 ? 's' : ''} connected`;
   });
 
+  onValue(deckRef, snap => {
+  drawPile = snap.val() || [];
+});
+
 onValue(activeCardRef, snap => {
   const cardData = snap.val();
 
@@ -838,7 +828,12 @@ onValue(activeCardRef, snap => {
 
   showActiveCard(cardData);
 });
+  deckNameRef = ref(db, `rooms/${ROOM_ID}/deckName`);
 
+onValue(deckNameRef, snap => {
+  deckName = snap.val() || "Deck";
+  updateDeckUI();
+});
 }
 
 startFirebase();
@@ -846,45 +841,39 @@ startFirebase();
 function updateDeckUI() {
   const deckArea = document.getElementById('deck-area');
   deckArea.innerHTML = '';
-  
-  Object.entries(decks).forEach(([deckId, pile]) => {
 
-    const deck = document.createElement('div');
-    deck.className = 'deck';
+  const deck = document.createElement('div');
+  deck.className = 'deck';
+  deck.textContent = deckName;
 
-    eck.title = deckId;
+  deck.addEventListener('click', spawnTestCard);
 
-    const name = deckNames[deckId] || "Deck";
-    deck.textContent = `${name} (${pile.length})`;
-
-    deck.addEventListener('click', () => drawFromDeck(deckId));
-
-    deckArea.appendChild(deck);
-  });
+  deckArea.appendChild(deck);
 }
 
-function drawFromDeck(deckId) {
+// initialize empty deck UI
+updateDeckUI();
 
-  const pile = decks[deckId] || [];
+function spawnTestCard() {
 
-  if (!pile.length) {
+  // if card already active → clear it
+  if (activeCard) {
+    set(activeCardRef, null);
+    return;
+  }
+
+  if (!drawPile.length) {
     showToast("Deck empty");
     return;
   }
 
-  const cardData = pile[pile.length - 1];
-  const newDeck = pile.slice(0, -1);
+  const cardData = drawPile[drawPile.length - 1];
+  const newDeck = drawPile.slice(0, -1);
 
-  // update ONLY that deck
-  set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
-
-  // set active card
-  set(activeCardRef, { ...cardData, deckId });
+  // ✅ update global state
+  set(deckRef, newDeck);
+  set(activeCardRef, cardData);
 }
-
-
-// initialize empty deck UI
-updateDeckUI();
 
   function showActiveCard(cardData) {
 
@@ -1015,6 +1004,7 @@ function showRevealedCard(cardData, key) {
   const card = document.createElement('div');
   card.className = 'card revealed-card';
   card.style.transform = `rotate(${Math.random() * 6 - 3}deg)`;
+  document.querySelectorAll('.revealed-card').forEach(c => c.remove());
   
   card.innerHTML = `
     <div class="close" style="top:4px; right:6px;">✖</div>
@@ -1132,6 +1122,8 @@ async function loadDeckFromSheet(url) {
     const header = rows[0];
     deckName = header[0] || "Deck";
 
+    set(deckNameRef, deckName);
+
     deckCards = rows.slice(2).map((row, index) => ({
       id: index,
       top: row[0] || "",
@@ -1144,18 +1136,21 @@ console.log("Parsed cards:", deckCards.slice(0, 5));
 let newDeck = [...deckCards];
 shuffle(newDeck);
 
-const deckId = "deck_" + Date.now();
+// ✅ store deck globally
+set(deckRef, newDeck);
 
-await set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
-await set(ref(db, `rooms/${ROOM_ID}/deckNames/${deckId}`), deckName);
+// ✅ clear active card
+set(activeCardRef, null);
 
-showToast(`Deck "${deckName}" added`);
+    showToast(`Loaded ${deckCards.length} cards`);
+    updateDeckUI();
 
-} catch (e) {
-  console.error(e);
-  showToast("Failed to load deck");
+    
+  } catch (e) {
+    console.error(e);
+    showToast("Failed to load deck");
+  }
 }
-
   
 // ─────────────────────────────────────────────
 //  BOARD IMAGE — synced via DB URL (hosted on GitHub)
