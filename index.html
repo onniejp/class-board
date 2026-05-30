@@ -846,13 +846,13 @@ startFirebase();
 function updateDeckUI() {
   const deckArea = document.getElementById('deck-area');
   deckArea.innerHTML = '';
-
-  deck.title = deckId
   
   Object.entries(decks).forEach(([deckId, pile]) => {
 
     const deck = document.createElement('div');
     deck.className = 'deck';
+
+    eck.title = deckId;
 
     const name = deckNames[deckId] || "Deck";
     deck.textContent = `${name} (${pile.length})`;
@@ -1131,8 +1131,6 @@ async function loadDeckFromSheet(url) {
 
     const header = rows[0];
     deckName = header[0] || "Deck";
-
-    set(deckNameRef, deckName);
 
     deckCards = rows.slice(2).map((row, index) => ({
       id: index,
