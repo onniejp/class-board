@@ -2,1400 +2,238 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Board Game Table</title>
 
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&display=swap');
+body { margin:0; font-family:sans-serif; background:#222; color:white; }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --wood:       #5C3A1E;
-    --wood-light: #8B5E3C;
-    --wood-dark:  #3B2210;
-    --felt:       #2D5016;
-    --felt-light: #3A6B1E;
-    --gold:       #D4A017;
-    --gold-light: #F0C040;
-    --cream:      #F5ECD7;
-    --shadow:     rgba(0,0,0,0.6);
-    --piece-size: 40px;
-  }
-
-  html, body {
-    width: 100%; height: 100%;
-    overflow: hidden;
-    background: var(--wood-dark);
-    font-family: 'Cinzel', serif;
-    color: var(--cream);
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  /* ── TABLE FRAME ── */
-  #table-frame {
-    position: fixed; inset: 0;
-    background:
-      radial-gradient(ellipse at center, #7A4A25 0%, #4A2A10 50%, #2A1508 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* Wood grain overlay */
-  #table-frame::before {
-    content: '';
-    position: absolute; inset: 0;
-    background-image:
-      repeating-linear-gradient(
-        92deg,
-        transparent 0px, transparent 18px,
-        rgba(0,0,0,0.04) 18px, rgba(0,0,0,0.04) 19px
-      ),
-      repeating-linear-gradient(
-        88deg,
-        transparent 0px, transparent 34px,
-        rgba(255,255,255,0.02) 34px, rgba(255,255,255,0.02) 35px
-      );
-    pointer-events: none;
-  }
-
-  /* ── BOARD ── */
-  #board-wrap {
-    position: relative;
-    width: min(96vw, calc(96vh * 16 / 9));
-    height: min(54vw, 96vh);
-    border-radius: 16px;
-    box-shadow:
-      0 0 0 10px #7A4A25,
-      0 0 0 18px #4A2A10,
-      0 0 0 22px #8B6A3C,
-      0 0 0 28px #3B2210,
-      0 30px 80px rgba(0,0,0,0.8);
-  }
-
-  #board {
-    position: relative;
-    width: 100%; height: 100%;
-    border-radius: 10px;
-    overflow: hidden;
-    background:
-      radial-gradient(ellipse at 30% 30%, #3A6B1E 0%, #2D5016 40%, #1E3A0F 100%);
-  }
-
-  /* Felt texture */
-  #board::before {
-    content: '';
-    position: absolute; inset: 0;
-    background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Ccircle cx='1' cy='1' r='0.7' fill='rgba(0,0,0,0.12)'/%3E%3Ccircle cx='3' cy='3' r='0.7' fill='rgba(0,0,0,0.08)'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* Board image layer */
-  #board-image {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    object-fit: cover;
-    border-radius: 10px;
-    z-index: 1;
-    opacity: 0;
-    transition: opacity 0.4s;
-  }
-  #board-image.loaded { opacity: 1; }
-
-  /* Gold border inset */
-  #board::after {
-    content: '';
-    position: absolute; inset: 8px;
-    border: 2px solid rgba(212,160,23,0.35);
-    border-radius: 6px;
-    pointer-events: none;
-    z-index: 10;
-    box-shadow: inset 0 0 30px rgba(0,0,0,0.3);
-  }
-
-  /* ── PIECES ── */
-  .piece {
-    position: absolute;
-    width: var(--piece-size);
-    height: var(--piece-size);
-    border-radius: 50%;
-    cursor: grab;
-    touch-action: none;
-    z-index: 20;
-    transition: box-shadow 0.15s, transform 0.1s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 26px;
-    line-height: 1;
-    /* centering offset handled in JS */
-    transform: translate(-50%, -50%);
-    will-change: left, top;
-    box-shadow:
-      0 4px 12px rgba(0,0,0,0.5),
-      inset 0 2px 4px rgba(255,255,255,0.25),
-      inset 0 -2px 4px rgba(0,0,0,0.3);
-  }
-
-  .piece:active { cursor: grabbing; }
-
-  .piece.dragging {
-    z-index: 100;
-    transform: translate(-50%, -50%) scale(1.18);
-    box-shadow:
-      0 14px 40px rgba(0,0,0,0.7),
-      inset 0 2px 4px rgba(255,255,255,0.3),
-      inset 0 -2px 4px rgba(0,0,0,0.3);
-    transition: none;
-  }
-
-  .piece.remote-move {
-    transition: left 0.25s ease-out, top 0.25s ease-out, transform 0.1s;
-  }
-
-  /* Piece colors */
-  .piece[data-color="red"]    { background: radial-gradient(circle at 35% 35%, #ff7b7b, #c0392b); border: 3px solid #8B0000; }
-  .piece[data-color="blue"]   { background: radial-gradient(circle at 35% 35%, #74b9ff, #2980b9); border: 3px solid #1a5276; }
-  .piece[data-color="white"]  { background: radial-gradient(circle at 35% 35%, #ffffff, #bdc3c7); border: 3px solid #7f8c8d; }
-  .piece[data-color="black"]  { background: radial-gradient(circle at 35% 35%, #5d6d7e, #1c2833); border: 3px solid #000; }
-  .piece[data-color="green"]  { background: radial-gradient(circle at 35% 35%, #a9dfbf, #229954); border: 3px solid #1a5e36; }
-  .piece[data-color="yellow"] { background: radial-gradient(circle at 35% 35%, #fff176, #f1c40f); border: 3px solid #b7950b; }
-
-  /* ── HUD ── */
-  #hud {
-    position: fixed;
-    top: 16px; left: 50%;
-    transform: translateX(-50%);
-    z-index: 200;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: rgba(30,15,5,0.88);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(212,160,23,0.4);
-    border-radius: 40px;
-    padding: 8px 20px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  }
-
-  #hud h1 {
-    font-family: 'Cinzel Decorative', serif;
-    font-size: clamp(11px, 2.5vw, 16px);
-    letter-spacing: 0.1em;
-    color: var(--gold-light);
-    white-space: nowrap;
-  }
-
-  #player-count {
-    font-size: 11px;
-    color: rgba(245,236,215,0.6);
-    white-space: nowrap;
-  }
-
-  .dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: #27ae60;
-    box-shadow: 0 0 6px #27ae60;
-    flex-shrink: 0;
-  }
-
-  /* ── SIDE PANEL ── */
-  #panel {
-    position: fixed;
-    right: 0; top: 0; bottom: 0;
-    width: 200px;
-    background: rgba(20,10,3,0.92);
-    backdrop-filter: blur(12px);
-    border-left: 1px solid rgba(212,160,23,0.25);
-    padding: 70px 14px 20px;
-    z-index: 150;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
-  }
-  #panel.open { transform: translateX(0); }
-
-  #panel h2 {
-    font-size: 11px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--gold);
-    border-bottom: 1px solid rgba(212,160,23,0.2);
-    padding-bottom: 8px;
-  }
-
-  .panel-btn {
-    background: rgba(212,160,23,0.12);
-    border: 1px solid rgba(212,160,23,0.3);
-    color: var(--cream);
-    font-family: 'Cinzel', serif;
-    font-size: 11px;
-    letter-spacing: 0.05em;
-    padding: 9px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    text-align: left;
-    transition: background 0.15s, border-color 0.15s;
-    width: 100%;
-  }
-  .panel-btn:hover { background: rgba(212,160,23,0.25); border-color: var(--gold); }
-
-  #add-piece-colors {
-    display: flex; flex-wrap: wrap; gap: 6px;
-  }
-
-  .color-swatch {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid transparent;
-    transition: transform 0.15s, border-color 0.15s;
-  }
-  .color-swatch:hover { transform: scale(1.2); border-color: var(--gold); }
-  .color-swatch.selected { border-color: white; transform: scale(1.15); }
-
-  #emoji-picker {
-    display: flex; flex-wrap: wrap; gap: 4px;
-  }
-  .emoji-opt {
-    width: 32px; height: 32px;
-    border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    cursor: pointer;
-    border: 2px solid transparent;
-    transition: background 0.12s;
-  }
-  .emoji-opt:hover { background: rgba(255,255,255,0.1); }
-  .emoji-opt.selected { border-color: var(--gold); background: rgba(212,160,23,0.15); }
-
-  /* ── TOGGLE BUTTON ── */
-  #toggle-panel {
-    position: fixed;
-    right: 16px; top: 16px;
-    z-index: 300;
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    background: rgba(20,10,3,0.88);
-    border: 1px solid rgba(212,160,23,0.4);
-    color: var(--gold-light);
-    font-size: 18px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
-    transition: background 0.15s;
-  }
-  #toggle-panel:hover { background: rgba(60,30,10,0.95); }
-
-  /* ── IMAGE UPLOAD HINT ── */
-  #drop-hint {
-    position: absolute;
-    inset: 0; z-index: 5;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 12px;
-    color: rgba(212,160,23,0.5);
-    font-size: 13px;
-    letter-spacing: 0.08em;
-    pointer-events: none;
-    text-align: center;
-    padding: 20px;
-  }
-  #drop-hint .icon { font-size: 48px; opacity: 0.4; }
-  #board.has-image #drop-hint { display: none; }
-
-  /* ── SHARE BAR ── */
-  #share-bar {
-    position: fixed;
-    bottom: 16px; left: 50%;
-    transform: translateX(-50%);
-    z-index: 200;
-    display: flex; align-items: center; gap: 8px;
-    background: rgba(20,10,3,0.88);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(212,160,23,0.3);
-    border-radius: 40px;
-    padding: 7px 14px;
-    font-size: 11px;
-    color: rgba(245,236,215,0.5);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    max-width: calc(100vw - 32px);
-  }
-
-  #share-url {
-    color: var(--gold-light);
-    font-size: 11px;
-    letter-spacing: 0.03em;
-    max-width: 260px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: opacity 0.2s;
-  }
-  #share-url:hover { opacity: 0.7; }
-
-  .copy-btn {
-    background: rgba(212,160,23,0.2);
-    border: 1px solid rgba(212,160,23,0.4);
-    color: var(--gold-light);
-    font-family: 'Cinzel', serif;
-    font-size: 10px;
-    letter-spacing: 0.05em;
-    padding: 4px 10px;
-    border-radius: 20px;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background 0.15s;
-  }
-  .copy-btn:hover { background: rgba(212,160,23,0.35); }
-
-  /* ── STATUS TOAST ── */
-  #toast {
-    position: fixed;
-    bottom: 60px; left: 50%;
-    transform: translateX(-50%) translateY(10px);
-    background: rgba(20,10,3,0.95);
-    border: 1px solid rgba(212,160,23,0.4);
-    color: var(--gold-light);
-    font-size: 12px;
-    padding: 8px 18px;
-    border-radius: 20px;
-    z-index: 500;
-    opacity: 0;
-    transition: opacity 0.25s, transform 0.25s;
-    pointer-events: none;
-    white-space: nowrap;
-  }
-  #toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-
-  /* drag-over board highlight */
-  #board.drag-over::after {
-    border-color: rgba(212,160,23,0.8) !important;
-    box-shadow: inset 0 0 40px rgba(212,160,23,0.15) !important;
-  }
-
-  
-@media (max-width: 1000px) {
-  :root { --piece-size: 23px; }
-  .piece { font-size: calc(var(--piece-size) * 0.5); }
-  #panel { width: 170px; }
-}
-  
-@media (max-width: 500px) and (orientation: portrait) {
-  :root { --piece-size: 12px; }
-}
-
-@media (max-width: 500px) and (orientation: landscape) {
-  :root { --piece-size: 46px; }
-}
-
+/* Decks */
 #deck-area {
   position: fixed;
   bottom: 80px;
   left: 16px;
-  z-index: 450;
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
 }
-  
-  #local-die {
-  position: fixed;
-  bottom: 16px;
-  left: 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: rgba(20,10,3,0.9);
-  border: 1px solid rgba(212,160,23,0.4);
-  border-radius: 14px;
-  z-index: 400;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.6);
-  font-size: 20px;
-}
-
-#local-die .die-emoji { cursor: pointer; }
-
-#local-die .die-value {
-  font-size: 18px;
-  color: var(--gold-light);
-  min-width: 1ch;
-}
-  /* ── MULTI DICE ------------------------------------------------ */
-#dice-row {
-  display: flex;
-  gap: 6px;
-}
-
-.die {
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.dice-controls {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-  justify-content: center;
-}
-
-.dice-controls button {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: 1px solid rgba(212,160,23,0.5);
-  background: rgba(20,10,3,0.85);
-  color: var(--gold-light);
-  font-family: inherit;
-  cursor: pointer;
-}
-
-  /* ── CARD / DECK UI ───────────────────────── */
 
 .deck {
   width: 90px;
   height: 130px;
-  border-radius: 10px;
-  background: linear-gradient(#222, #444);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  text-align: center;
-  cursor: pointer;
-  position: relative;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+  background:#444;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  cursor:pointer;
+  font-size:12px;
 }
 
+/* Cards */
 .card {
-  position: fixed;
-  width: 200px;
-  background: #fff;
-  color: #000;
-  border-radius: 12px;
-  padding: 10px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-  z-index: 500;
-  cursor: grab;
+  position:fixed;
+  background:white;
+  color:black;
+  padding:10px;
+  border-radius:8px;
+  top:40%;
+  left:40%;
+  width:200px;
 }
 
-.card img {
-  width: 100%;
-  border-radius: 8px;
+.close {
+  position:absolute;
+  top:4px;
+  right:6px;
+  cursor:pointer;
 }
 
-.card .close {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  cursor: pointer;
-}
-
+/* Hand */
 #hand {
-  position: fixed;
-  bottom: 120px;
-  right: 20px;
-  width: 250px;
-  min-height: 120px;
-  background: rgba(20,10,3,0.95);
-  border: 1px solid var(--gold);
-  border-radius: 8px;
-  padding: 8px;
-  z-index: 500;
+  position:fixed;
+  right:10px;
+  bottom:100px;
+  background:#111;
+  padding:10px;
+  width:200px;
 }
-
 </style>
 </head>
-  
+
 <body>
 
-  <!-- ── DICE UI ───────────────────────── -->
-<div id="local-die">
-  <div id="dice-row"></div>
-  <div class="dice-controls">
-    <button id="add-die">+</button>
-    <button id="remove-die">−</button>
-  </div>
-</div>
-
-  <!-- ── DECK AREA ───────────────────────── -->
 <div id="deck-area"></div>
 
 <div id="hand">
-  <div style="font-size:10px; margin-bottom:6px; color:#ccc;">Your Hand</div>
+  <div style="font-size:10px; margin-bottom:6px;">Your Hand</div>
 </div>
-  
-<!-- Firebase SDKs -->
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import {
-  getDatabase, ref, set, onValue, push, remove, onDisconnect, serverTimestamp
+  getDatabase, ref, set, onValue, remove
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
 
+const app = initializeApp({
+  databaseURL: "https://onnie-s-board-game-default-rtdb.firebaseio.com"
+});
 
-const firebaseConfig = {
-  apiKey:            "AIzaSyBCdKMXJEgpZnMK7kPnHbbZ_gabviXEeQw",
-  authDomain:        "onnie-s-board-game.firebaseapp.com",
-  databaseURL:       "https://onnie-s-board-game-default-rtdb.firebaseio.com",
-  projectId:         "onnie-s-board-game",
-  storageBucket:     "onnie-s-board-game.firebasestorage.app",
-  messagingSenderId: "258517591017",
-  appId:             "1:258517591017:web:5031387457578bfbf9e178",
-  measurementId:     "G-DGDY442Z8B"
-};
-  
-const DEMO_MODE = false;
+const db = getDatabase(app);
+const ROOM_ID = "main";
 
-const app     = initializeApp(firebaseConfig);
-const db      = getDatabase(app);
-let roomRef, piecesRef, presenceRef, myPresenceRef;
-let revealedRef;
-let activeCardRef;
-let decksRef;
-let deckNamesRef;
+const decksRef = ref(db, `rooms/${ROOM_ID}/decks`);
+const deckNamesRef = ref(db, `rooms/${ROOM_ID}/deckNames`);
+const activeCardRef = ref(db, `rooms/${ROOM_ID}/activeCard`);
 
-// ─── ROOM ID from URL hash ───────────────────
-function getRoomId() {
-  if (!location.hash) {
-    const id = Math.random().toString(36).slice(2, 8).toUpperCase();
-    location.hash = id;
-    return id;
-  }
-  return location.hash.slice(1);
-}
-
-const ROOM_ID = getRoomId();
-let playerCount = 1;
-
-// ─── DOM refs ────────────────────────────────
-const board       = document.getElementById('board');
-const boardImage  = document.getElementById('board-image');
-const playerCountEl = document.getElementById('player-count');
-const panel       = document.getElementById('panel');
-const toast       = document.getElementById('toast');
-const shareUrl    = document.getElementById('share-url');
-
-// ─── State ───────────────────────────────────
-let pieces = {};          // id → {el, data}
-let selectedColor = 'red';
-let selectedEmoji = '♟';
-let isPanelOpen   = false;
-let localDragging = null;  // id being dragged locally
-let deckCards = [];
-let deckName = "Deck";
-let decks = {}; // { deckId: [cards] }
-let discardPile = [];
-let activeCard = null;
-let playerHand = []
+let decks = {};
 let deckNames = {};
 
-// ─── Share URL ───────────────────────────────
-shareUrl.textContent = location.href;
+/* ─────────── Firebase listeners ─────────── */
 
-// ─── Toast ───────────────────────────────────
-function showToast(msg, dur = 2000) {
-  toast.textContent = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), dur);
-}
-
-// ─────────────────────────────────────────────
-//  PIECE RENDERING
-// ─────────────────────────────────────────────
-function createPieceEl(id, data) {
-  const el = document.createElement('div');
-  el.className = 'piece';
-  el.dataset.id    = id;
-  el.dataset.color = data.color;
-  el.textContent   = data.emoji;
-  el.style.left    = (data.x * 100) + '%';
-  el.style.top     = (data.y * 100) + '%';
-  makeDraggable(el, id);
-  board.appendChild(el);
-  return el;
-}
-
-function syncPiece(id, data, remote = false) {
-  if (pieces[id]) {
-    const el = pieces[id].el;
-    if (remote && id !== localDragging) {
-      el.classList.add('remote-move');
-      setTimeout(() => el.classList.remove('remote-move'), 300);
-    }
-    if (id !== localDragging) {
-      el.style.left = (data.x * 100) + '%';
-      el.style.top  = (data.y * 100) + '%';
-    }
-    el.dataset.color = data.color;
-    el.textContent   = data.emoji;
-    pieces[id].data  = data;
-  } else {
-    const el = createPieceEl(id, data);
-    pieces[id] = { el, data };
-  }
-}
-
-function removePiece(id) {
-  if (pieces[id]) {
-    pieces[id].el.remove();
-    delete pieces[id];
-  }
-}
-
-// ─────────────────────────────────────────────
-//  DRAG — MOUSE + TOUCH
-// ─────────────────────────────────────────────
-function makeDraggable(el, id) {
-  let dragging = false;
-  let startX, startY, startLeft, startTop;
-
-  function getBoardRect() { return board.getBoundingClientRect(); }
-
-  function clamp(v) { return Math.max(0, Math.min(1, v)); }
-
-  function startDrag(cx, cy) {
-    dragging = true;
-    localDragging = id;
-    el.classList.add('dragging');
-    const rect   = getBoardRect();
-    startX       = cx;
-    startY       = cy;
-    startLeft    = parseFloat(el.style.left) / 100;
-    startTop     = parseFloat(el.style.top)  / 100;
-    el.style.zIndex = 100;
-  }
-
-  function moveDrag(cx, cy) {
-    if (!dragging) return;
-    const rect = getBoardRect();
-    const nx   = clamp(startLeft + (cx - startX) / rect.width);
-    const ny   = clamp(startTop  + (cy - startY) / rect.height);
-    el.style.left = (nx * 100) + '%';
-    el.style.top  = (ny * 100) + '%';
-    // Throttled remote write
-    if (!moveDrag._t) {
-      moveDrag._t = setTimeout(() => {
-        moveDrag._t = null;
-        writePiece(id, { ...pieces[id].data, x: nx, y: ny });
-      }, 40);
-    }
-  }
-
-  function endDrag(cx, cy) {
-    if (!dragging) return;
-    dragging = false;
-    localDragging = null;
-    el.classList.remove('dragging');
-    el.style.zIndex = '';
-    const rect = getBoardRect();
-    const nx   = clamp(startLeft + ((cx ?? 0) - startX) / rect.width);
-    const ny   = clamp(startTop  + ((cy ?? 0) - startY) / rect.height);
-    el.style.left = (nx * 100) + '%';
-    el.style.top  = (ny * 100) + '%';
-    writePiece(id, { ...pieces[id].data, x: nx, y: ny });
-  }
-
-  // Mouse
-  el.addEventListener('mousedown', e => {
-    e.preventDefault();
-    startDrag(e.clientX, e.clientY);
-    const mm = e2 => moveDrag(e2.clientX, e2.clientY);
-    const mu = e2 => { endDrag(e2.clientX, e2.clientY); window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', mu); };
-    window.addEventListener('mousemove', mm);
-    window.addEventListener('mouseup', mu);
-  });
-
-  // Touch
-  el.addEventListener('touchstart', e => {
-    e.preventDefault();
-    const t = e.touches[0];
-    startDrag(t.clientX, t.clientY);
-  }, { passive: false });
-
-  el.addEventListener('touchmove', e => {
-    e.preventDefault();
-    const t = e.touches[0];
-    moveDrag(t.clientX, t.clientY);
-  }, { passive: false });
-
-  el.addEventListener('touchend', e => {
-    e.preventDefault();
-    const t = e.changedTouches[0];
-    endDrag(t.clientX, t.clientY);
-  }, { passive: false });
-
-  // Double-tap / double-click to remove
-  let lastTap = 0;
-  el.addEventListener('dblclick', () => deletePiece(id));
-  el.addEventListener('touchend', e => {
-    const now = Date.now();
-    if (now - lastTap < 350) deletePiece(id);
-    lastTap = now;
-  });
-}
-
-// ─────────────────────────────────────────────
-//  FIREBASE READ / WRITE
-// ─────────────────────────────────────────────
-function writePiece(id, data) {
-  set(ref(db, `rooms/${ROOM_ID}/pieces/${id}`), data);
-}
-
-function deletePiece(id) {
-  remove(ref(db, `rooms/${ROOM_ID}/pieces/${id}`));
-}
-
-function addPiece() {
-  const rect = board.getBoundingClientRect();
-  const data = {
-    color: selectedColor,
-    emoji: selectedEmoji,
-    x: 0.5 + (Math.random() - 0.5) * 0.1,
-    y: 0.5 + (Math.random() - 0.5) * 0.1,
-  };
-
-  const newRef = push(ref(db, `rooms/${ROOM_ID}/pieces`));
-  set(newRef, data);
-}
-
-// ─── Subscribe to Firebase ───────────────────
-function startFirebase() {
-  piecesRef = ref(db, `rooms/${ROOM_ID}/pieces`);
-  presenceRef = ref(db, `rooms/${ROOM_ID}/presence`);
-  revealedRef = ref(db, `rooms/${ROOM_ID}/revealed`);
-  activeCardRef = ref(db, `rooms/${ROOM_ID}/activeCard`);
-  decksRef = ref(db, `rooms/${ROOM_ID}/decks`);
-  deckNamesRef = ref(db, `rooms/${ROOM_ID}/deckNames`);
-
-onValue(deckNamesRef, snap => {
-  deckNames = snap.val() || {};
+onValue(decksRef, s => {
+  decks = s.val() || {};
   updateDeckUI();
 });
 
-onValue(decksRef, snap => {
-  decks = snap.val() || {};
+onValue(deckNamesRef, s => {
+  deckNames = s.val() || {};
   updateDeckUI();
 });
 
-onValue(revealedRef, snap => {
-  const data = snap.val() || {};
-
-  // remove existing revealed cards
-  document.querySelectorAll('.revealed-card').forEach(c => c.remove());
-
-  Object.entries(data).forEach(([key, cardData]) => {
-    showRevealedCard(cardData, key);
-  });
+onValue(activeCardRef, s => {
+  document.querySelectorAll('.card').forEach(c => c.remove());
+  const data = s.val();
+  if (!data) return;
+  showCard(data);
 });
 
-  // Pieces
-  onValue(piecesRef, snap => {
-    const remote = snap.val() || {};
-    Object.keys(pieces).forEach(id => { if (!remote[id]) removePiece(id); });
-    Object.entries(remote).forEach(([id, data]) => { syncPiece(id, data, true); });
-  });
-
-  // Board image — sync URL for all players
-  onValue(ref(db, `rooms/${ROOM_ID}/boardImage`), snap => {
-    const url = snap.val();
-    if (url) loadBoardImage(url);
-  });
-
-  // Presence
-  myPresenceRef = push(presenceRef);
-  set(myPresenceRef, { joined: serverTimestamp() });
-  onDisconnect(myPresenceRef).remove();
-
-  onValue(presenceRef, snap => {
-    const n = snap.size || 0;
-    playerCount = n;
-    playerCountEl.textContent = `${n} player${n !== 1 ? 's' : ''} connected`;
-  });
-
-onValue(activeCardRef, snap => {
-  const cardData = snap.val();
-
-  // clear old cards
-  document.querySelectorAll('.active-card').forEach(c => c.remove());
-
-  if (!cardData) {
-    activeCard = null; // ✅ CRITICAL FIX
-    return;
-  }
-
-  showActiveCard(cardData);
-});
-
-}
-
-
-window.addEventListener('DOMContentLoaded', () => {
-  startFirebase();
-  updateDeckUI();
-});
+/* ─────────── Deck UI ─────────── */
 
 function updateDeckUI() {
-  const deckArea = document.getElementById('deck-area');
-  deckArea.innerHTML = '';
+  const area = document.getElementById('deck-area');
+  area.innerHTML = '';
 
   Object.entries(decks).forEach(([deckId, pile]) => {
 
-    const deck = document.createElement('div');
-    deck.className = 'deck';
-
     const safePile = Array.isArray(pile) ? pile : [];
 
-    const name = deckNames[deckId] || "Deck";
-    deck.textContent = `${name} (${safePile.length})`;
+    const deck = document.createElement('div');
+    deck.className = 'deck';
+    deck.textContent = `${deckNames[deckId] || "Deck"} (${safePile.length})`;
 
-    deck.addEventListener('click', () => drawFromDeck(deckId));
+    deck.onclick = () => draw(deckId);
 
-    // ✅ CLOSE BUTTON (FIXED LOCATION)
-    const closeBtn = document.createElement('div');
-    closeBtn.textContent = "✖";
-    closeBtn.style.position = "absolute";
-    closeBtn.style.top = "4px";
-    closeBtn.style.right = "6px";
-    closeBtn.style.cursor = "pointer";
-    closeBtn.style.fontSize = "12px";
-
-    closeBtn.addEventListener('click', (e) => {
+    // close button
+    const close = document.createElement('div');
+    close.className = 'close';
+    close.textContent = "✖";
+    close.onclick = (e) => {
       e.stopPropagation();
-
       remove(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`));
       remove(ref(db, `rooms/${ROOM_ID}/deckNames/${deckId}`));
+    };
 
-      showToast("Deck removed");
-    });
+    // shuffle button
+    const shuffleBtn = document.createElement('div');
+    shuffleBtn.textContent = "🔄";
+    shuffleBtn.style.position = "absolute";
+    shuffleBtn.style.bottom = "4px";
+    shuffleBtn.style.right = "6px";
 
-    deck.appendChild(closeBtn);
-
-    // ✅ RESHUFFLE BUTTON (SAFE)
-    const reshuffle = document.createElement('div');
-    reshuffle.textContent = "🔄";
-    reshuffle.style.position = "absolute";
-    reshuffle.style.bottom = "4px";
-    reshuffle.style.right = "6px";
-    reshuffle.style.cursor = "pointer";
-    reshuffle.style.fontSize = "12px";
-
-    reshuffle.addEventListener('click', (e) => {
+    shuffleBtn.onclick = (e) => {
       e.stopPropagation();
+      const arr = [...safePile];
+      shuffle(arr);
+      set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), arr);
+    };
 
-      const newDeck = [...safePile];
-      shuffle(newDeck);
+    deck.appendChild(close);
+    deck.appendChild(shuffleBtn);
 
-      set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
-
-      showToast("Deck shuffled");
-    });
-
-    deck.appendChild(reshuffle);
-
-    deckArea.appendChild(deck);
+    area.appendChild(deck);
   });
 }
 
+/* ─────────── DRAW (correct loop logic) ─────────── */
 
-function drawFromDeck(deckId) {
-  const pile = Array.isArray(decks[deckId]) ? decks[deckId] : [];
+function draw(deckId) {
+  const pile = decks[deckId];
+  if (!pile || !pile.length) return;
 
-  if (pile.length === 0) return; // safety
+  const card = pile[0];                 // take top
+  const rotated = [...pile.slice(1), card]; // rotate
 
-  const cardData = pile[0]; // take top
-  const newDeck = [...pile.slice(1), cardData]; // rotate
-
-  set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
-
-  set(activeCardRef, { ...cardData, deckId });
+  set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), rotated);
+  set(activeCardRef, { ...card, deckId });
 }
 
+/* ─────────── CARD DISPLAY ─────────── */
 
-// initialize empty deck UI
+function showCard(card) {
+  const el = document.createElement('div');
+  el.className = "card";
 
-  function showActiveCard(cardData) {
-
-  activeCard = cardData;
-
-  const card = document.createElement('div');
-  card.className = 'card active-card';
-
-  card.innerHTML = `
+  el.innerHTML = `
     <div class="close">✖</div>
-    <div class="reveal" style="position:absolute; top:6px; left:8px; cursor:pointer;">👁</div>
-    <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
-    ${cardData.img ? `<img src="${cardData.img}">` : ""}
-    <div style="margin-top:6px;">${cardData.bottom}</div>
+    <div><b>${card.top}</b></div>
+    <div>${card.bottom}</div>
   `;
 
-  card.style.left = (window.innerWidth * 0.4) + 'px';
-  card.style.top  = (window.innerHeight * 0.3) + 'px';
-
-  makeCardDraggable(card);
-
-  // ✅ close = discard or hand
-  card.querySelector('.close').addEventListener('click', () => {
-
-    if (cardData.special) {
-      playerHand.push(cardData);
-      addCardToHand(cardData);
+  el.querySelector('.close').onclick = () => {
+    if (card.special) {
+      addCardToHand(card);  // ✅ visual copy ONLY
     }
-
     set(activeCardRef, null);
-  });
+  };
 
-  // ✅ reveal still works
-  card.querySelector('.reveal').addEventListener('click', () => {
-    revealCard(cardData);
-  });
-
-  document.body.appendChild(card);
+  document.body.appendChild(el);
 }
 
+/* ─────────── HAND (SAFE VERSION) ─────────── */
 
-  function makeCardDraggable(el) {
-  let offsetX = 0;
-  let offsetY = 0;
-  let dragging = false;
-
-  el.addEventListener('mousedown', e => {
-    dragging = true;
-    offsetX = e.clientX - el.offsetLeft;
-    offsetY = e.clientY - el.offsetTop;
-    el.style.cursor = 'grabbing';
-
-    function move(e2) {
-      if (!dragging) return;
-      el.style.left = (e2.clientX - offsetX) + 'px';
-      el.style.top  = (e2.clientY - offsetY) + 'px';
-    }
-
-    function up() {
-      dragging = false;
-      el.style.cursor = 'grab';
-      window.removeEventListener('mousemove', move);
-      window.removeEventListener('mouseup', up);
-    }
-
-    window.addEventListener('mousemove', move);
-    window.addEventListener('mouseup', up);
-  });
-}
-
-// ✅ ✅ ADD CARD TO HAND
-function addCardToHand(cardData) {
+function addCardToHand(card) {
   const hand = document.getElementById('hand');
 
   const mini = document.createElement('div');
-  mini.style.background = "#fff";
-  mini.style.color = "#000";
-  mini.style.padding = "6px";
-  mini.style.marginBottom = "6px";
-  mini.style.borderRadius = "6px";
-  mini.style.fontSize = "10px";
-  mini.style.cursor = "pointer";
+  mini.textContent = card.top;
+  mini.style.background="#fff";
+  mini.style.color="#000";
+  mini.style.marginBottom="6px";
+  mini.style.cursor="pointer";
 
-  mini.textContent = cardData.top;
+  // reopen card
+  mini.onclick = () => showCard(card);
 
-  // Click = reopen
-  mini.addEventListener('click', () => {
-    spawnCardFromData(cardData);
-  });
-
-  // Right click = remove only
-  mini.addEventListener('contextmenu', (e) => {
+  // remove from hand (no DB interaction)
+  mini.oncontextmenu = (e) => {
     e.preventDefault();
     mini.remove();
-    showToast("Returned");
-  });
+  };
 
   hand.appendChild(mini);
 }
 
+/* ─────────── UTIL ─────────── */
 
-function spawnCardFromData(cardData) {
-
-  const card = document.createElement('div');
-  card.className = 'card';
-
-  card.innerHTML = `
-  <div class="close">✖</div>
-  <div class="reveal" style="position:absolute; top:6px; left:8px; cursor:pointer;">👁</div>
-  <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
-  ${cardData.img ? `<img src="${cardData.img}">` : ""}
-  <div style="margin-top:6px;">${cardData.bottom}</div>
-`;
-
-  card.style.left = (window.innerWidth * 0.4) + 'px';
-  card.style.top  = (window.innerHeight * 0.3) + 'px';
-
-  makeCardDraggable(card);
-
-  card.querySelector('.reveal').addEventListener('click', () => {
-  revealCard(cardData);
-});
-
-  card.querySelector('.close').addEventListener('click', () => {
-    card.remove();
-  });
-
-  document.body.appendChild(card);
-}
-
-function revealCard(cardData) {
-  push(revealedRef, cardData);
-}
-
-function showRevealedCard(cardData, key) {
-  const card = document.createElement('div');
-  card.className = 'card revealed-card';
-  card.style.transform = `rotate(${Math.random() * 6 - 3}deg)`;
-  
-  card.innerHTML = `
-    <div class="close" style="top:4px; right:6px;">✖</div>
-    <div style="font-weight:bold; margin-bottom:6px;">${cardData.top}</div>
-    ${cardData.img ? `<img src="${cardData.img}">` : ""}
-    <div style="margin-top:6px;">${cardData.bottom}</div>
-  `;
-
-  card.style.left = (window.innerWidth * (0.3 + Math.random() * 0.4)) + 'px';
-  card.style.top  = (window.innerHeight * (0.2 + Math.random() * 0.3)) + 'px';
-
-  // ✅ REMOVE FROM DB
-  card.querySelector('.close').addEventListener('click', () => {
-    remove(ref(db, `rooms/${ROOM_ID}/revealed/${key}`));
-  });
-
-  document.body.appendChild(card);
-}
-  
-    // ── DICE (MULTI, SYNCED) ────────────────────
-const diceRef = ref(db, `rooms/${ROOM_ID}/dice`);
-const diceRow = document.getElementById('dice-row');
-const dice = {};
-
-function renderDie(id, value) {
-  let el = dice[id];
-  if (!el) {
-    el = document.createElement('div');
-    el.className = 'die';
-    el.textContent = '🎲 ' + value;
-    el.addEventListener('click', () => rollDie(id));
-    dice[id] = el;
-    diceRow.appendChild(el);
-  } else {
-    el.textContent = '🎲 ' + value;
+function shuffle(a) {
+  for (let i=a.length-1;i>0;i--) {
+    const j=Math.floor(Math.random()* (i+1));
+    [a[i],a[j]]=[a[j],a[i]];
   }
 }
 
-function removeDieEl(id) {
-  if (dice[id]) {
-    dice[id].remove();
-    delete dice[id];
-  }
-}
+/* ─────────── TEST DECK ─────────── */
 
-onValue(diceRef, snap => {
-  const data = snap.val() || {};
-  Object.keys(dice).forEach(id => {
-    if (!data[id]) removeDieEl(id);
-  });
-  Object.entries(data).forEach(([id, d]) => {
-    renderDie(id, d.value);
-  });
-});
+function addDemoDeck() {
+  const cards = [
+    { top:"Card A", bottom:"Effect A" },
+    { top:"Card B", bottom:"Effect B" },
+    { top:"Card C", bottom:"Effect C", special:true }
+  ];
 
-  function rollDie(id) {
-  const value = Math.floor(Math.random() * 6) + 1;
-  set(ref(db, `rooms/${ROOM_ID}/dice/${id}`), { value });
-}
+  shuffle(cards);
 
-document.getElementById('add-die').addEventListener('click', () => {
-  const newRef = push(diceRef);
-  set(newRef, { value: Math.floor(Math.random() * 6) + 1 });
-});
+  set(ref(db, `rooms/${ROOM_ID}/decks/demo`), cards);
+  set(ref(db, `rooms/${ROOM_ID}/deckNames/demo`), "Demo Deck");
 
-document.getElementById('remove-die').addEventListener('click', () => {
-  const ids = Object.keys(dice);
-  if (ids.length === 0) return;
-  remove(ref(db, `rooms/${ROOM_ID}/dice/${ids[ids.length - 1]}`));
-});
-
-// ─────────────────────────────────────────────
-//  CARD DECK LOADER (github raw)
-// ─────────────────────────────────────────────
-
-  function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-}
-
-function convertSheetUrlToCSV(url) {
-  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  if (!match) return null;
-  return `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
-}
-
-async function loadDeckFromSheet(url) {
-
-  let fetchUrl = url;
-
-  // ✅ If it's Google Sheets, convert it
-  if (url.includes("docs.google.com")) {
-    fetchUrl = convertSheetUrlToCSV(url);
-  }
-
-  // ✅ DEBUG: confirm what URL is actually used
-  console.log("FETCH URL:", fetchUrl);
-
-  if (!fetchUrl) {
-    showToast("Invalid deck URL");
-    return;
-  }
-
-  try {
-    const res = await fetch(fetchUrl);
-    const text = await res.text();
-
-    // ✅ DEBUG: show what we actually received
-    console.log("FIRST 200 CHARS:", text.slice(0, 200));
-
-    const rows = text.split('\n').map(r => r.split(','));
-
-    const header = rows[0];
-    deckName = header[0] || "Deck";
-
-    deckCards = rows.slice(2).map((row, index) => ({
-      id: index,
-      top: row[0] || "",
-      bottom: row[1] || "",
-      img: row[2] || "",
-      special: (row[3] || "").trim().toLowerCase() === "true"
-    }));
-console.log("Parsed cards:", deckCards.slice(0, 5));
-    // initialize draw pile (shuffle)
-let newDeck = [...deckCards];
-shuffle(newDeck);
-
-const deckId = deckName.replace(/\s+/g, "_").toLowerCase();
-
-await set(ref(db, `rooms/${ROOM_ID}/decks/${deckId}`), newDeck);
-await set(ref(db, `rooms/${ROOM_ID}/deckNames/${deckId}`), deckName);
-
-showToast(`Deck "${deckName}" added`);
-
-
-playerHand = [];
-
-const hand = document.getElementById('hand');
-hand.innerHTML =
-  '<div style="font-size:10px; margin-bottom:6px; color:#ccc;">Your Hand</div>';
-
-
-} catch (e) {
-  console.error(e);
-  showToast("Failed to load deck");
-}
-}
-
-
-  
-// ─────────────────────────────────────────────
-//  BOARD IMAGE — synced via DB URL (hosted on GitHub)
-// ─────────────────────────────────────────────
-
-// Called by the DB listener whenever boardImage URL changes
-function loadBoardImage(url) {
-  boardImage.src = url;
-  boardImage.onload = () => {
-    boardImage.classList.add('loaded');
-    board.classList.add('has-image');
-  };
-  boardImage.onerror = () => showToast('Could not load image — check the URL', 4000);
-}
-
-// Write a new GitHub raw URL to DB — all players receive it instantly
-function setBoardImageUrl(url) {
-  url = url.trim();
-  if (!url) return;
-  set(ref(db, `rooms/${ROOM_ID}/boardImage`), url)
-    .then(() => showToast('Board updated for all players!'))
-    .catch(e => showToast('Error: ' + e.message, 4000));
-}
-
-document.getElementById('set-image-btn').addEventListener('click', () => {
-  const inp = document.getElementById('image-url-input');
-  setBoardImageUrl(inp.value);
-  inp.value = '';
-});
-
-document.getElementById('image-url-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    setBoardImageUrl(e.target.value);
-    e.target.value = '';
-  }
-});
-
-// ─────────────────────────────────────────────
-//  PANEL
-// ─────────────────────────────────────────────
-document.getElementById('toggle-panel').addEventListener('click', () => {
-  isPanelOpen = !isPanelOpen;
-  panel.classList.toggle('open', isPanelOpen);
-});
-
-document.getElementById('add-piece-btn').addEventListener('click', () => { addPiece(); });
-
-// Color swatches
-const colors = ['red','blue','white','black','green','yellow'];
-const swatchContainer = document.getElementById('add-piece-colors');
-colors.forEach(c => {
-  const s = document.createElement('div');
-  s.className = 'color-swatch' + (c === selectedColor ? ' selected' : '');
-  s.dataset.color = c;
-  s.style.background = {
-    red:'#c0392b', blue:'#2980b9', white:'#bdc3c7',
-    black:'#1c2833', green:'#229954', yellow:'#f1c40f'
-  }[c];
-  s.addEventListener('click', () => {
-    document.querySelectorAll('.color-swatch').forEach(x => x.classList.remove('selected'));
-    s.classList.add('selected');
-    selectedColor = c;
-  });
-  swatchContainer.appendChild(s);
-});
-
-// Emoji picker
-const emojis = ['♟','♜','♞','♝','♛','♚','🎲','⚔️','🛡️','👑','🔮','🗡️','🧙','🐉','💎','🏰'];
-const emojiContainer = document.getElementById('emoji-picker');
-emojis.forEach(em => {
-  const opt = document.createElement('div');
-  opt.className = 'emoji-opt' + (em === selectedEmoji ? ' selected' : '');
-  opt.textContent = em;
-  opt.addEventListener('click', () => {
-    document.querySelectorAll('.emoji-opt').forEach(x => x.classList.remove('selected'));
-    opt.classList.add('selected');
-    selectedEmoji = em;
-  });
-  emojiContainer.appendChild(opt);
-});
-
-// Clear board
-document.getElementById('clear-btn').addEventListener('click', () => {
-  if (!confirm('Remove all pieces?')) return;
-  remove(ref(db, `rooms/${ROOM_ID}/pieces`));
-});
-
-// Copy URL
-document.getElementById('copy-btn').addEventListener('click', () => {
-  navigator.clipboard.writeText(location.href).then(() => showToast('Link copied!'));
-});
-document.getElementById('share-url').addEventListener('click', () => {
-  navigator.clipboard.writeText(location.href).then(() => showToast('Link copied!'));
-});
-
-  //Load Deck Button
-document.getElementById('load-deck-btn').addEventListener('click', () => {
-  const url = document.getElementById('deck-url-input').value;
-  loadDeckFromSheet(url);
-});
-
-  
-</script>
-
-<!-- HUD -->
-<div id="hud">
-  <div class="dot"></div>
-  <h1>Board Game Table</h1>
-  <span id="player-count">connecting…</span>
-</div>
-
-<!-- Toggle panel button -->
-<button id="toggle-panel" title="Open toolbar">⚙</button>
-
-<!-- Side Panel -->
-<div id="panel">
-  <h2>Game Tools</h2>
-
-  <h2 style="margin-top:4px">Board Image URL</h2>
-  <input id="image-url-input" type="url" placeholder="https://raw.githubusercontent.com/…"
-    style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(212,160,23,0.3);
-    border-radius:6px;color:var(--cream);font-family:'Cinzel',serif;font-size:10px;
-    padding:8px 10px;outline:none;box-sizing:border-box;" />
-  <button class="panel-btn" id="set-image-btn" style="margin-top:4px">🖼 Set Board Image</button>
-
-  <h2 style="margin-top:4px">Card Deck URL</h2>
-
-<input id="deck-url-input" type="url"
-  placeholder="https://docs.google.com/spreadsheets/..."
-  style="width:100%;background:rgba(255,255,255,0.07);
-  border:1px solid rgba(212,160,23,0.3);
-  border-radius:6px;color:var(--cream);
-  font-family:'Cinzel',serif;font-size:10px;
-  padding:8px 10px;outline:none;box-sizing:border-box;" />
-
-<button class="panel-btn" id="load-deck-btn" style="margin-top:4px">
-  🃏 Load Deck
-</button>
-
-  <h2 style="margin-top:4px">Add Piece</h2>
-  <div id="add-piece-colors"></div>
-  <div id="emoji-picker" style="margin-top:6px"></div>
-  <button class="panel-btn" id="add-piece-btn" style="margin-top:4px">＋ Place Piece</button>
-
-  <h2 style="margin-top:4px">Actions</h2>
-  <button class="panel-btn" id="clear-btn">🗑 Clear All Pieces</button>
-
-  <div style="margin-top:auto; font-size:10px; color:rgba(245,236,215,0.3); line-height:1.6">
-    Room: <span id="room-label" style="color:var(--gold)"></span><br>
-    Double-click a piece to remove it.<br>
-    Paste a GitHub raw URL to set the board.
-  </div>
-</div>
-
-<!-- Table frame & board -->
-<div id="table-frame">
-  <div id="board-wrap">
-    <div id="board">
-      <img id="board-image" alt="board">
-      <div id="drop-hint">
-        <div class="icon">🖼</div>
-        <div>Paste a GitHub raw image URL<br>in the toolbar to set the board</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Share bar -->
-<div id="share-bar">
-  Share:&nbsp;<span id="share-url"></span>
-  <button class="copy-btn" id="copy-btn">Copy</button>
-</div>
-
-<!-- Toast -->
-<div id="toast"></div>
-
-<script>
-  // Set room label (sync script can't easily touch non-module DOM)
-  document.addEventListener('DOMContentLoaded', () => {
-    const lbl = document.getElementById('room-label');
-    if (lbl) lbl.textContent = location.hash.slice(1);
-  });
-</script>
-</body>
-</html>
+  document.getElementById('hand').innerHTML =
